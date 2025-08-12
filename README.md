@@ -1,5 +1,9 @@
 # ScriptBench
 
+> **⚠️ Pre-release Notice**: This is a pre-release version and everything is bound to change.
+> 
+> If you have task ideas, please share them! Open a PR or issue with your suggestions.
+
 ScriptBench is a benchmarking framework for evaluating Large Language Models (LLMs) on automated Python script generation and execution tasks. It tests an LLM's ability to understand task descriptions, generate working Python code with proper dependencies, and produce correct outputs across various domains.
 
 ## Overview

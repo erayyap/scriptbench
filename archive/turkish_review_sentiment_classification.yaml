@@ -23,11 +23,10 @@ task_specification:
     Ürün hızlı geldi fakat güncel yazılımlı olarak göndermemiş satıcı ve hiç bir kanalı çözmüyor süper ayarlar kısmına 6969 şifre ile giriş yapamadım yarın satıcıyı arıycam bakalım ilk etapta pek memnun kalmadım diyebilirim inşallah sorunum çözülür.,Tarafsız
     Avantajlar : MediaMarkt.com başarılı hizmet<br />Dezavantajlar : Samsung servis ilgiszliği tercih pişmanlığına nedn<br />Ürünümü alalı bir hafta oldu, alım ve kargo & teslimat aşaması çok ilgiliydi lakin ürünümü alalı bir haftayı geçti hala gelip kurulum yapacaklar. Üç kez aradım, iki kez servis yazdırdım fakat ne gelen var ne arayan soran. İki gün daha bekledikten sonra servis gelip ürünümü açmaz ve kurmazsa geri iade edeceğim. Bir müşteri olarak Samsung servisinin ilgisizliği yüzünden (kurulum yapılamaması) ürün iade talebi en büyük ayıpları olsa gerek.,Olumsuz
 
-    
-    
-    
 
 result:
   type: classification_match
   threshold: 0.90
   ground_truth_file: /turkish_review_sentiment_classification/filled.csv
+
+source: https://www.kaggle.com/datasets/burhanbilenn/duygu-analizi-icin-urun-yorumlari

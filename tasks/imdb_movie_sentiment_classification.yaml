@@ -19,3 +19,5 @@ result:
   type: classification_match
   threshold: 0.95
   ground_truth_file: /imdb_movie_sentiment_classification/filled.csv
+
+source: https://www.kaggle.com/datasets/lakshmi25npathi/imdb-dataset-of-50k-movie-reviews 

@@ -1,0 +1,10 @@
+difficulty: 4
+task_specification:
+  description: >
+    Write a Python script that downloads this video: https://youtu.be/Oe-rR2xVzrU?si=qkUX3ZfQK0ILMH2c&t=93
+    Make sure the video is 720p and has audio.
+    Save the video as "video.*" in any format you can in the folder where I run the script. The format doesn't matter to me.
+
+result:
+  type: script_run
+  script_file: youtube_video_downloading/checker.py

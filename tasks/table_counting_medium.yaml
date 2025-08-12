@@ -1,0 +1,13 @@
+difficulty: 7
+task_folder: /table_docs_medium
+task_specification:
+  description: >
+    Write a Python script that processes a directory of .docx files. 
+    The folder is called "./table_docs_medium" The script should iterate through each file, 
+    find all the tables within it, and count the total number of cells across all tables in all files. 
+    The script must correctly handle tables of various shapes and sizes, including those with merged cells. 
+    The script must print the final aggregated count to the standard output in the exact format 'ANSWER=x', 
+    where 'x' is the total number of cells.
+result:
+  type: numerical
+  amount: 104

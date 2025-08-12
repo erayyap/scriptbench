@@ -1,0 +1,148 @@
+difficulty: 4
+task_file: /student_gpa_calculation/student_grades.csv
+task_specification:
+  description: >
+    Write a Python script that processes the csv containing all students grades for CS 202 and outputs the average GPA for section 1.
+    The csv is called "student_grades.csv" and can be found at the same folder I will run this script in.
+    Here is the syllabus for the lesson.
+    Output the avg gpa like: "ANSWER=a.bc" where a.bc is the gpa.
+    ### **CS 201: Data Structures and Algorithms**
+    **Fall 2023**
+
+    ---
+
+    **Course Information**
+
+    *   **Course Title:** CS 201: Data Structures and Algorithms
+    *   **Semester:** Fall 2023
+    *   **Section 001 Meeting Time:** Monday, Wednesday, Friday | 10:00 AM - 10:50 AM
+    *   **Location:** Turing Hall, Room 101
+    *   **Course Website:** [University Canvas/Blackboard Portal Link]
+
+    ---
+
+    **Instructor & Staff Information**
+
+    *   **Instructor (Section 001):** Dr. Evelyn Reed
+    *   **Email:** e.reed@university.edu
+    *   **Office:** Knuth Building, Room 314
+    *   **Office Hours:** Mondays 1:00 PM - 3:00 PM, Thursdays 11:00 AM - 12:00 PM, or by appointment.
+
+    *   **Teaching Assistant:** David Chen
+    *   **Email:** d.chen.ta@university.edu
+    *   **TA Office Hours:** Tuesdays 3:00 PM - 5:00 PM in the CS Collaboration Center (Hopper Wing)
+
+    ---
+
+    **Course Description**
+
+    This course is a fundamental study of data structures and the algorithms that operate on them. We will explore how to implement, use, and analyze the performance of core data structures including lists, stacks, queues, trees, hash tables, and graphs. Emphasis will be placed on understanding the trade-offs between different structures and selecting the appropriate one for a given problem. Topics include recursion, searching, sorting, asymptotic analysis (Big-O notation), and foundational graph algorithms. The course will involve significant programming assignments in Python.
+
+    **Prerequisites**
+
+    *   CS 101: Introduction to Programming (or equivalent proficiency in Python).
+    *   Familiarity with basic programming concepts: variables, control flow (if/else, loops), functions, and fundamental object-oriented principles (classes and objects).
+
+    ---
+
+    ### **Grading Policy & Assessment**
+
+    Your final grade will be determined by a weighted combination of homework, quizzes, a midterm exam, and a final exam.
+
+    **Component Breakdown:**
+
+    | Component                | Quantity | Weight  |
+    | ------------------------ | :------: | :-----: |
+    | Homework Assignments     |    4     |  30%    |
+    | Quizzes                  |    5     |  10%    |
+    | Midterm Exam             |    1     |  25%    |
+    | Final Exam               |    1     |  35%    |
+    | **Total**                |          | **100%**|
+
+    ### **Detailed Grading Rules**
+
+    Please read these rules carefully, as they contain important details about how each component contributes to your final grade.
+
+    1.  **Homework Assignments (30%):**
+        *   There will be four programming-intensive homework assignments.
+        *   **Your lowest homework score of the four will be dropped.** The final homework grade used in the course calculation will be the arithmetic mean of your three highest-scoring assignments.
+
+    2.  **Quizzes (10%):**
+        *   There will be five short, in-class quizzes.
+        *   **Your lowest quiz score of the five will be dropped.** No makeup quizzes will be given. This drop policy is intended to cover any necessary absences or poor performance.
+        *   **Quiz Average Normalization:** To ensure fairness across all lecture sections, a normalization procedure will be applied. The final quiz grade is calculated as follows:
+            1.  A "Raw Quiz Average" is computed for each student using their top four quiz scores.
+            2.  The average of all Raw Quiz Averages within each lecture section is calculated ("Section Average").
+            3.  A course-wide "Target Average" is set at **85.0**.
+            4.  Each student's Raw Quiz Average is adjusted by a normalization factor: `(Target Average / Section Average)`.
+            5.  The resulting `Normalized_Quiz_Score` is used for the final grade calculation, capped at 100%.
+
+    3.  **Midterm Exam (25%):**
+        *   A single, in-class midterm exam covering the first half of the course.
+
+    4.  **Final Exam (35%):**
+        *   A cumulative final exam covering all course material, with an emphasis on the second half of the course. The final exam is mandatory and cannot be dropped.
+
+    5.  **The Midterm Replacement Rule:**
+        *   To reward demonstrated mastery of the material over the semester, your Final Exam score can be used to replace your Midterm Exam score, **if and only if your Final Exam score is higher than your Midterm Exam score.**
+        *   An `Effective_Midterm_Score` will be computed as `max(Midterm_Exam_Score, Final_Exam_Score)` and will be used in place of the original Midterm score in the final grade calculation.
+
+    **Final Grade Calculation Formula:**
+
+    `Final Grade = (Avg_of_Top_3_HW * 0.30) + (Normalized_Quiz_Score * 0.10) + (Effective_Midterm_Score * 0.25) + (Final_Exam_Score * 0.35)`
+
+    **Letter Grade Scale:**
+
+    | Percentage  | Grade | GPA   |
+    | ----------- | :---: | :---: |
+    | 93.0 - 100  |   A   |  4.0  |
+    | 90.0 - 92.99|  A-   |  3.7  |
+    | 87.0 - 89.99|  B+   |  3.3  |
+    | 83.0 - 86.99|   B   |  3.0  |
+    | 80.0 - 82.99|  B-   |  2.7  |
+    | 77.0 - 79.99|  C+   |  2.3  |
+    | 73.0 - 76.99|   C   |  2.0  |
+    | 70.0 - 72.99|  C-   |  1.7  |
+    | 60.0 - 69.99|   D   |  1.0  |
+    | Below 60.0  |   F   |  0.0  |
+
+    ---
+
+    ### **Course Policies**
+
+    *   **Late Homework Policy:** Homework is due by 11:59 PM on the due date via the course website. Late submissions will be penalized **20% per 24-hour period** (or fraction thereof). Submissions will not be accepted more than 48 hours after the deadline.
+    *   **Academic Integrity:** All work submitted must be your own. You may discuss high-level concepts and approaches with classmates, but you must write your own code and solutions. Sharing code, copying solutions from any source, or allowing another student to copy your work is a serious violation of the University's Honor Code and will result in a failing grade for the assignment and a report to the Dean of Students.
+    *   **Accommodations:** Students with disabilities who may need accommodations in this class are encouraged to contact the Disability Resource Center (DRC) as soon as possible to ensure that such accommodations are arranged in a timely fashion.
+
+    ---
+
+    ### **Tentative Course Schedule**
+    *This schedule is subject to change at the instructor's discretion.*
+
+    | Week | Dates       | Topic                                                        | Assessments & Deadlines              |
+    | :--- | :---------- | :----------------------------------------------------------- | :----------------------------------- |
+    | 1    | Sep 4-8     | Course Intro, Python Review, Algorithm Analysis, Big-O Notation |                                      |
+    | 2    | Sep 11-15   | Asymptotic Analysis (Big-O, Omega, Theta), Abstract Data Types |                                      |
+    | 3    | Sep 18-22   | Lists, Stacks, Queues, Deques                              | **HW 1 Assigned**                    |
+    | 4    | Sep 25-29   | Linked Lists (Singly, Doubly, Circular)                      | **Quiz 1**                           |
+    | 5    | Oct 2-6     | Recursion, Trees, Tree Traversal                             | **HW 1 Due**                         |
+    | 6    | Oct 9-13    | Binary Search Trees (BSTs)                                   | **Quiz 2**, **HW 2 Assigned**        |
+    | 7    | Oct 16-20   | Balanced BSTs (AVL Trees), Heaps & Priority Queues           | **Quiz 3**                           |
+    | 8    | Oct 23-27   | Midterm Review                                               | **Midterm Exam (in class, Oct 27)**  |
+    | 9    | Oct 30-Nov 3| Hash Tables, Dictionaries, Collision Resolution              | **HW 2 Due**                         |
+    | 10   | Nov 6-10    | Introduction to Graphs, Graph Representation               | **HW 3 Assigned**                    |
+    | 11   | Nov 13-17   | Graph Traversal (BFS, DFS)                                   | **Quiz 4**                           |
+    | 12   | Nov 20-22   | Shortest Path Algorithms (Dijkstra's)                        | **HW 3 Due** (Thanksgiving Break)    |
+    | 13   | Nov 27-Dec 1| Minimum Spanning Trees (Prim's, Kruskal's)                   | **HW 4 Assigned**                    |
+    | 14   | Dec 4-8     | Advanced Sorting (Merge Sort, Quick Sort), Course Wrap-up    | **Quiz 5**                           |
+    | 15   | Dec 11-13   | Final Exam Review                                            | **HW 4 Due**                         |
+    | **Finals Week** | **TBD** | **Cumulative Final Exam**                              |                                      |
+    Also part of the csv:
+    student_id,section,hw1,hw2,hw3,hw4,quiz1,quiz2,quiz3,quiz4,quiz5,midterm,final
+    10001,1,86.75,97.84,83.05,93.66,92.17,97.88,70.49,92.93,100,94.56,
+    10002,1,90.59,80.18,85.69,83.49,100,87.87,95.56,100,92.35,71.46,
+    10003,1,,100,,100,87.47,46.99,60.3,93.27,85.3,92.93,54.18
+
+result:
+  type: numerical
+  amount: 2.49

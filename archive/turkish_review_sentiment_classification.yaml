@@ -1,0 +1,33 @@
+difficulty: 8
+task_file: /turkish_review_sentiment_classification/unfilled.csv
+task_specification:
+  description: >
+    Write a Python script that processes a csv to classify Turkish reviews based on sentiment.
+    In the folder there is a csv file called unfilled.csv that has two fields: "Görüş" and "Durum".
+    The "Görüş" field contains the reviews while using "gpt-4o-mini" through OpenAI API you will fill 
+    the "Durum" field by writing "Olumlu", "Olumsuz" or "Tarafsız" there using the LLM to classify. Afterwards, you should save the 
+    file as is with the same name. You can use my OpenAI key by accessing it through the env as "OPENAI_TEST_KEY".
+    By the way, make sure the script ends at most in 10 minutes and you must achieve >%90 accuracy.
+    Also open the csv using utf16 encoding, as other encodings will not work.
+    Be aware that this is a hard task for LLMs and unprompted gpt-4o-mini can only achieve ~%70 accuracy. You are free to come up with any framework/prompt to get >%90 accuracy.
+    Examples: 
+    Görüş,Durum
+    ses kalitesi ve ergonomisi rezalet, sony olduğu için aldım ama 4'de 1 fiyatına çin replika ürün alsaydım çok çok daha iyiydi, kesinlikle tavsiye etmiyorum.,Olumsuz
+    hizli teslimat tesekkürler,Tarafsız
+    ses olayı süper....gece çalıştır sıkıntı yok.....kablo uzun işinizi çok rahat ettirir.....çekme olayı son derece güzel içiniz rahat olsun......diğerlerini saymıyorum bile.....,Olumlu
+    geldi bigün kullandık hemen bozoldu hiçtavsiye. etmem,Olumsuz
+    Giriş seviyesindeki kullanıcılar için kabul edilebilir sonuçlar veren bir lens, fokus motoru ve makro çekimleri kaliteli sonuçlar veriyor. Şunu da belirtmek lazım ki belli bir süre kullandıktan sonra daha kaliteli bir lens ihtiyacı hissedeceksiniz.,Tarafsız
+    kullanisli baya,Olumlu
+    Ürün pompasız geliyor. Onun dışında güzel ürün. Pompası olmadığı için 2 yıldız kırdım. Mağaza ürünü zamanında gönderdi.ürün iyi paketlenmişti.,Tarafsız
+    Yorumlara bakarak aldım tam olarak istediğim performansı göremedim açıkcası veya beklentim çok yüksekti bilemiyorum artık.,Tarafsız
+    Ürün hızlı geldi fakat güncel yazılımlı olarak göndermemiş satıcı ve hiç bir kanalı çözmüyor süper ayarlar kısmına 6969 şifre ile giriş yapamadım yarın satıcıyı arıycam bakalım ilk etapta pek memnun kalmadım diyebilirim inşallah sorunum çözülür.,Tarafsız
+    Avantajlar : MediaMarkt.com başarılı hizmet<br />Dezavantajlar : Samsung servis ilgiszliği tercih pişmanlığına nedn<br />Ürünümü alalı bir hafta oldu, alım ve kargo & teslimat aşaması çok ilgiliydi lakin ürünümü alalı bir haftayı geçti hala gelip kurulum yapacaklar. Üç kez aradım, iki kez servis yazdırdım fakat ne gelen var ne arayan soran. İki gün daha bekledikten sonra servis gelip ürünümü açmaz ve kurmazsa geri iade edeceğim. Bir müşteri olarak Samsung servisinin ilgisizliği yüzünden (kurulum yapılamaması) ürün iade talebi en büyük ayıpları olsa gerek.,Olumsuz
+
+    
+    
+    
+
+result:
+  type: classification_match
+  threshold: 0.90
+  ground_truth_file: /turkish_review_sentiment_classification/filled.csv

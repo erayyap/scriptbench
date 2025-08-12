@@ -1,0 +1,23 @@
+difficulty: 3
+task_file: /chess_move_validation/incomplete_games.csv
+task_specification:
+  description: >
+    Process a CSV file containing chess games in algebraic notation where some moves are marked as [INVALID].
+    The CSV has columns: game_id, white_player, black_player, moves, result, target
+    The moves column contains space-separated moves like "e4 e5 Nf3 [INVALID] Bc4 ..."
+    You must fill the target column with the [INVALID] moves on what they were initially, in order.
+    The target field is initially empty, you must find the moves.
+    The csv is "incomplete_games.csv" and is in the same folder that I will run the script in.
+    After filling the target rows, save the modified csv with the same name.
+
+    
+    Example rows (FILLED):
+    game_id,white_player,black_player,moves,result,target
+    GAME_0001,Wei Nakamura,Ian Fischer,g4 Nc6 d4 Nb8 Qd3 f5 g5 b6 c3 c5 Qd2 b5 f4 h6 g6 Qa5 Na3 a6 Kd1 Rh7 c4 b4 Nc2 Qb5 Ke1 b3 Nh3 Qa4 Na3 h5 Qa5 Qxa5+ Kf2 Qb5 Rg1 h4 axb3 Qxc4 Rg5 Qd3 Nb1 Qxd4+ Kf3 Nh6 Rg3 Qg1 Ra2 Rh8 Rxa6 Ng8 Rf6 Ra6 Be3 Nh6 Bd4 e6 Rxg1 Nf7 Rg3 Ra4 Bg2 Ra8 Rxe6+ dxe6 Rg4 Nd8 Bh1 Ra5 Rg3 Be7 Be5 Ra7 e3 Nf7 Kg2 Rd7 Bxb8 c4 Rg4 Nd8 bxc4 Rd6 Kf3 Ba6 Nd2 fxg4+ Kf2 Rd4 c5 Bf6 Ke1 Bf1 Bc7 Rd6 Bb7 Be2 Be4 Rxd2 Be5 Bd3 Bb7 Rd1+ Kf2 Rg8 Bc7 Bd4 Ng5 Kf8 Bd5 exd5 Bb6 Nc6 b3 Nb4 Ne6+ Ke8 Nc7+ Ke7 Ne8 Kd7 Nf6+ Kc8 Nxd5 Re8 Ba7 Rd8 Nc7 Rd6 Kg2 Na2 c6 Bxa7 Kf2 Nc1 Nb5 Bf5 Na3 Be4 f5 Nd3+ [INVALID] Re1+ [INVALID] Rd4 f6 g3 c7 Nf2+ Kxe1 Bb8 Nb1 Bf5 b4 Rd7 e4 Bxg6 Nc3 Kb7 Nb5 Rd1+ [INVALID] Ka6 hxg3 Rd5 Na3 Rd7 Kf3 Rd5 c8=R Bf7 Rxb8 Rd6 Kxf2 Rc6 Kf1 g6 Ke1 hxg3 b5+ Ka7 Rb6 Ka8 Nc4 Bg8 Ke2 Be6 Ra6+ Rxa6 Kd2 Ra1 Kd3 g2 Ke2 Bg4+ Kf2,*,Ke2 Kd2 Ke2
+    GAME_0002,Magnus Giri,Fabiano Tal,h3 e5 d4 Qe7 Qd2 f6 Qh6 Nxh6 Bd2 Qa3 Bg5 c6 Bf4 Bc5 Bg3 Nf5 bxa3 a6 f3 Kf7 Kd1 g5 Kd2 Nh4 Kc3 Ra7 d5 a5 Bf2 Re8 Kd3 h5 Rh2 a4 Kd2 Ra6 Bd4 Rb6 g3 Rxb1 e3 Rd1+ Rxd1 Na6 c4 Bd6 Bb2 Bxa3 dxc6 Kf8 g4 Nc7 Bxa3+ Kf7 Bd6 Rg8 cxb7 Kg6 Rh1 Na8 bxa8=Q f5 gxf5+ Kxf5 Re1 Rh8 Bxe5 Rh7 e4+ Ke6 Qd5+ [INVALID] Bg3 g4 fxg4 Kd8 Kc2 Ng6 Kd2 h4 Qf7 Nf4 Bh2 Ba6 Qf5 d5 Qc8+ Bxc8 Bg3 d4 Rb1 Nd3 Rd1 Ne5 g5 Ke8 Be1 Kd7 Nf3 Ke7 a3 Rg7 Rg1 Rh7 Rg2 Ba6 g6 Kd8 Bf2 Nxg6 Bxd4 Ne5 Ba1 Bb7 Rg7 Bc6 Rg4 Ke8 Nxe5 Rh6 Bb2 Bxe4 Rxe4 Rb6 Nf3+ Re6 Kd3 Re5 Nxe5 Kf8 Re3 Kg8 Ke2 Kg7 Rd2 Kg8 Nf7 Kxf7 Kf3 Kf8 Bc3 Kg8 Ra2 Kh7 Ke4 Kh6 Kf5 Kh7 Rae2 Kg8 Kf4 Kf8 Re1 Kf7 Kg5 Kf8 Bd4 Kg8 Bf6 Kf8 c5 Kg8 Bc3 Kh7 Ba5 Kh8 Rc3 Kh7 Rc4 Kg8 Bc7 Kf7 Bd3 Kg8 Kf5 Kf7 Re7+ Kg8 Bd8 Kf8 Rc7 Kg8 Bf6 Kf8 Be7+ Kg7 Bf8+ Kh8 Be4 [INVALID] Bc6 Kh8 Rc3 Kg8 Bf3 Kxf8 Rc6 Ke8 Re6+ Kf7 Ra6 Kf8 Rc4 Kf7 Be4 Kg7 Bh1 Kf8 Rf4 Ke7 Rf2 Ke8 Ke5,*,Ke7 Kg8
+
+    
+result:
+  type: classification_match
+  threshold: 0.99
+  ground_truth_file: /chess_move_validation/complete_games.csv

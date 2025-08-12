@@ -1,0 +1,33 @@
+[project]
+name = "scriptbench"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.11"
+dependencies = [
+    "faker>=37.5.3",
+    "flask>=3.1.1",
+    "langchain-core>=0.1.0",
+    "langchain-openai>=0.1.0",
+    "pandas>=2.3.1",
+    "python-chess>=1.999",
+    "python-dotenv>=1.0.0",
+    "pyyaml>=6.0.0",
+    "scikit-learn>=1.7.1",
+    "sentence-transformers>=5.1.0",
+    "torch>=2.8.0",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.uv.sources]
+scriptbench = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+    "scriptbench",
+]
+
+[tool.uv]
+package = true

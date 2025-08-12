@@ -1,0 +1,15 @@
+difficulty: 8
+task_script: /agentic_reddit_post_checker/server.py
+task_specification:
+  description: >
+    Create a script that monitors localhost:8834/api/ which serves Reddit-style posts from a local database.
+    So, the thing is I don't know which endpoint supports getting the posts or how it works.
+    Therefore I want you to build an agent using "gpt-4o-mini" using OpenAI API that will interact with this server and get me to do this:
+    -> Find the tech related subreddit (There are only 10 subreddits in total), and find the ID of the post whose comments have the highest average of downvotes and the post came out after 8 April 2022. Finally, the agent should print the ID as "ANSWER=x" where x is the ID of the post.
+    You can use my OpenAI key by accessing it through the env as "OPENAI_TEST_KEY".
+    Let the agent start from "/api" endpoint to get the documentation of the server API. 
+    This is a hard task, so you can make the agent as sophisticated as it needs to be.
+    
+result:
+  type: numerical
+  amount: 14137

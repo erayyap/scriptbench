@@ -1,0 +1,10 @@
+difficulty: 3
+task_script: /counting_items_server/server.py
+task_specification:
+  description: >
+    write a script to check localhost:6793/get_item/{index_number} which is connected to a db, to find how many iterms are stored in db. 
+    the ids are iterative, and none of the items can be deleted. the ids start from 1.
+    in the end, print the amount of items to the terminal as "ANSWER=x"
+result:
+  type: numerical
+  amount: 52679

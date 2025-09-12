@@ -1,0 +1,110 @@
+difficulty: 6
+task_file: /log_date_counting/benchmark_log.log
+task_specification:
+  description: |
+    The task is to develop a Python script that parses a log file (`benchmark_log.log`) and counts how many lines contain a valid event timestamp. Make sure the script can run on its own without needing any args. The log file will be in the folder where the script will run in. The objective is to handle a complex log containing many different formats, many of which deliberately mimic date formats without actually being timestamps (like version numbers or transaction IDs). The script should be robust enough to differentiate between legitimate timestamps and these misleading patterns. It will take a single command-line argument for the input file path, process the file line by line, and must output a single line to the command line in the format `ANSWER=[COUNT]`. A line should only be counted if it contains a substring that represents a true calendar date and/or time of day, serving the purpose of marking when an event occurred. Valid examples include common formats such as `YYYY-MM-DD HH:MM:SS`, ISO 8601, RFC 2822 (e.g., `Fri, 27 Oct 2023`), or formats with named months. Exclusions include data that only looks like dates but are not timestamps, such as software version numbers (`v2024.01.15`), transaction IDs (`20231027-a4b7c1d3`), directory paths with date components (`/var/log/2023/10/27/`), product SKUs, or IP addresses. The acceptance criteria emphasize accuracy: the script must capture legitimate timestamps regardless of their position in the line while rejecting false positives based on contextual clues.
+    EXAMPLE LINES FROM LOG:
+    INFO: System load average: 0.85/9.49/29.83 (1m/5m/15m)
+    {"level": "info", "message": "Determine fish anything activity.", "trace_id": "d0f74a97-4f18-4404-9e18-ccfd178ca269"}
+    DEBUG: [CacheManager] Cache EVICT for key: 6c8adb4a291f69ac74966f616bf67172
+    DEBUG: System resource usage: CPU at 16.0%, Memory at 2297MB.
+    DEBUG: System resource usage: CPU at 65.6%, Memory at 5503MB.
+    DEBUG: System resource usage: CPU at 13.9%, Memory at 3744MB.
+    INFO: Processed 2139-1-5 events in the last cycle.
+    [2025/02/14] 00:06:45 [DEBUG] Fill service great gas report base wind deal chance shake attack camera.
+    INFO: System updated to version v2022.8.18. Restarting services.
+    CRITICAL: Transaction 2025-05-06-96e807cc failed due to insufficient funds.
+    2024-11-15T05:18:36.232408Z [INFO] Another pressure style management voice include girl may.
+    [INFO] [FrontendApp] Rule close majority through thousand recognize.
+    WARNING: Unrecognized connection attempt from 7.6.20.108:37163
+    INFO: System load average: 0.38/6.45/18.22 (1m/5m/15m)
+    [INFO] [FrontendApp] Peace choice raise effect hear theory whole.
+    INFO: AuthService starting up on port 4837...
+    INFO: [TaskScheduler] Job job-35843 completed successfully.
+    [DEBUG] [APIGateway] Man often traditional might main down particular.
+    INFO: [TaskScheduler] Job job-41487 completed successfully.
+    WARNING: Deprecated endpoint /api/v2/data was called. Please use /api/v3/data instead.
+    AUDIT: User 'wedwards' performed action 'login_success'. SessionID: f4683331-71a2-4b69-8875-654712647c33
+    CRITICAL: [AuthService] Multiple failed login attempts detected from IP: 119.83.231.252. Temporarily blocking.
+    INFO: User profile loaded for user=johnsonerin duration_ms=161
+    INFO: Processed 2498-9-1 events in the last cycle.
+    INFO: System updated to version v2023.11.23. Restarting services.
+    INFO: System load average: 2.17/7.87/20.88 (1m/5m/15m)
+    [INFO] [AuthService] Congress drop two town others open decade sure.
+    195.110.162.1 - user-4389 "POST app/app HTTP/1.1" 200 631ms
+    ERROR: Unhandled exception caught: ConnectionRefusedError in FrontendApp.
+    Apr 10, 2025, 04:57:24 PM [INFO] Him save house laugh team beat of everybody.
+    DEBUG: System resource usage: CPU at 37.5%, Memory at 1794MB.
+    61.218.253.68 - user-8603 "POST main HTTP/1.1" 404 1208ms
+    DEBUG: Inventory check for SKU: 16-03-2022-NA
+    DEBUG: Inventory check for SKU: 03-12-2024-QA
+    DEBUG: [DatabaseConnector] Executed query on table 'orders' in 188.97ms
+    DEBUG: [CacheManager] Cache MISS for key: 8d336127f66ae9f5eccb332871db765f
+    [INFO] [AuthService] Drug seem reveal may consider nature third.
+    INFO: Log rotation complete. Archived log to /var/logs/archive/2025/01/21/app.log.gz
+    181.22.214.51 - user-9992 "POST categories/explore/explore HTTP/1.1" 200 291ms
+    DEBUG: [CacheManager] Cache EVICT for key: 7fba68eaa3a9bfc3171ce81e1f2ef077
+    INFO: Log rotation complete. Archived log to /var/logs/archive/2025/07/22/app.log.gz
+    INFO: APIGateway starting up on port 7483...
+    DEBUG: [CacheManager] Cache EVICT for key: 54dc27654d0faec7e99c6529c1c632a6
+    ERROR: Unhandled exception caught: NullPointerException in BillingWorker.
+    {"level": "info", "message": "Friend wife particularly service night control.", "trace_id": "efd44f20-138c-4c2f-87d0-d394a9261447"}
+    INFO: Processed 2867-1-10 events in the last cycle.
+    CRITICAL: Transaction 2025-03-08-23869e4f failed due to insufficient funds.
+    INFO: AuthService starting up on port 6920...
+    INFO: [TaskScheduler] Job job-18849 started.
+    WARNING: Unrecognized connection attempt from 23.7.21.14:31899
+    INFO: Log rotation complete. Archived log to /var/logs/archive/2024/11/10/app.log.gz
+    AUDIT: User 'briannachambers' performed action 'login_success'. SessionID: 6ce480a8-344d-41af-8c22-ac9c03c43110
+    {"level": "warning", "message": "Man actually miss challenge eat set.", "trace_id": "a75cb25b-e290-477f-9a2d-6628ccf7d83f"}
+    INFO: Processed 2827-11-15 events in the last cycle.
+    DEBUG: System resource usage: CPU at 9.0%, Memory at 6963MB.
+    [DEBUG] [TaskScheduler] Administration during image human leader away.
+    Sep 07, 2025, 10:46:29 AM [INFO] Score or treatment few first later rise one boy.
+    [INFO] [DatabaseConnector] Member easy admit keep pretty adult.
+    INFO: [TaskScheduler] Job job-86312 started.
+    {"level": "warning", "message": "Why lay realize remember player.", "trace_id": "9ea1381f-c02e-43ae-acfd-01a39d581acd"}
+    18/Mar/2025:12:14:09 +0000 [INFO] Democrat carry meeting claim once each five.
+    DEBUG: [CacheManager] Cache SET for key: 4bd65b3fc6fb5251ac86f42dc040f4a6
+    ERROR: Unhandled exception caught: NullPointerException in AuthService.
+    [INFO] [FrontendApp] Close might century night cut.
+    2025-06-14 18:31:27,239280 [ERROR] Need fast more growth address consider much road claim body team us down.
+    2025-03-11 06:44:17,239298 [WARNING] Consumer me fire shake nothing where case even note stage herself.
+    2025-07-03 00:14:28,239315 [DEBUG] Drive democratic commercial indeed face consider easy defense guy detail training social.
+    [ERROR] [BillingWorker] Recognize give true type light kitchen.
+    [INFO] [BillingWorker] Rise news account side son simply hit.
+    ERROR: Unhandled exception caught: ConnectionRefusedError in CacheManager.
+    209.27.46.245 - user-7452 "GET list HTTP/1.1" 403 806ms
+    WARNING: Deprecated endpoint /api/v2/data was called. Please use /api/v3/data instead.
+    CRITICAL: [AuthService] Multiple failed login attempts detected from IP: 160.17.244.212. Temporarily blocking.
+    INFO: BillingWorker starting up on port 3696...
+    DEBUG: Inventory check for SKU: 20-02-2024-IP
+    DEBUG: System resource usage: CPU at 66.7%, Memory at 7301MB.
+    CRITICAL: [AuthService] Multiple failed login attempts detected from IP: 191.232.139.250. Temporarily blocking.
+    WARNING: Unrecognized connection attempt from 19.5.21.140:16173
+    DEBUG: Starting CI build 20250329.2 for branch 'main'.
+    INFO: System updated to version v2023.11.27. Restarting services.
+    INFO: System load average: 1.34/5.99/26.53 (1m/5m/15m)
+    {"level": "info", "message": "Share wait onto woman inside.", "trace_id": "ad84ad70-2e1c-4888-8210-61dad0a87524"}
+    10-15-2024 18:08 [INFO] Whose dream thus technology daughter series long chair idea down finish age the.
+    INFO: TaskScheduler starting up on port 7868...
+    [DEBUG] [BillingWorker] Service hair actually military development.
+    INFO: System updated to version v2022.10.4. Restarting services.
+    INFO: System updated to version v2023.5.19. Restarting services.
+    INFO: User profile loaded for user=stonebrittany duration_ms=497
+    INFO: APIGateway starting up on port 3838...
+    WARNING: Deprecated endpoint /api/v1/users was called. Please use /api/v3/users instead.
+    INFO: System updated to version v2022.12.11. Restarting services.
+    INFO: System updated to version v2024.9.9. Restarting services.
+    INFO: [TaskScheduler] Job job-21450 started.
+    INFO: Log rotation complete. Archived log to /var/logs/archive/2024/12/30/app.log.gz
+    CRITICAL: [AuthService] Multiple failed login attempts detected from IP: 104.134.125.103. Temporarily blocking.
+    DEBUG: System resource usage: CPU at 16.0%, Memory at 7202MB.
+    INFO: System load average: 0.14/14.35/28.45 (1m/5m/15m)
+    INFO: User profile loaded for user=rmedina duration_ms=289
+    CRITICAL: Transaction 2025-03-03-16ab0dbf failed due to insufficient funds.
+    INFO: CacheManager starting up on port 4784...
+
+result:
+  type: numerical
+  amount: 606

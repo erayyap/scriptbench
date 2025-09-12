@@ -1,7 +1,7 @@
 difficulty: 8
 task_file: /pokemon_type_effectiveness/unfilled.csv
 task_specification:
-  description: >
+  description: |
     Write a Python script that processes a csv to classify a type's effectiveness against a pokemon.
     So, I have built a pokemon romhack where there are only 6 types with a custom type effectiveness chart.
     Apart from the types and their resistances/effectivenesses being changed, all the mechanics regarding types are the same.

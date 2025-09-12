@@ -1,7 +1,7 @@
 difficulty: 4
 task_file: /student_gpa_calculation/student_grades.csv
 task_specification:
-  description: >
+  description: |
     Write a Python script that processes the csv containing all students grades for CS 202 and outputs the average GPA for section 1.
     The csv is called "student_grades.csv" and can be found at the same folder I will run this script in.
     Here is the syllabus for the lesson.

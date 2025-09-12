@@ -1,0 +1,10 @@
+difficulty: 5
+task_specification:
+  description: >
+    Write a Python script that finds the track id of Mars Volta's Eriatarka song on Spotify.
+    I don't have any API keys.
+    Print out the track id like: "ANSWER=x"
+
+result:
+  type: script_answer
+  expected_string: "310CmUstbdDdogxSO340qU"

@@ -7,7 +7,7 @@ import logging
 
 from .task import Task
 from .execution import ScriptExecutor, WindowsScriptExecutor, UnixScriptExecutor
-from .evaluation import NumericalEvaluator, ClassificationEvaluator, ScriptRunEvaluator
+from .evaluation import NumericalEvaluator, ClassificationEvaluator, ScriptRunEvaluator, StringAnswerEvaluator
 
 
 class Evaluator:
@@ -20,7 +20,8 @@ class Evaluator:
         self._evaluators = {
             "numerical": NumericalEvaluator(self.logger),
             "classification_match": ClassificationEvaluator(self.logger),
-            "script_run": ScriptRunEvaluator(self.timeout, self.logger)
+            "script_run": ScriptRunEvaluator(self.timeout, self.logger),
+            "string_answer": StringAnswerEvaluator(self.logger)
         }
     
     def _create_executor(self) -> ScriptExecutor:
@@ -139,5 +140,18 @@ class Evaluator:
             else:
                 error_msg = script_run_details.get("error", "Unknown script_run error")
                 eval_logger.warning(f"Script run evaluation FAILED for task '{task.task_path.stem}': {error_msg}")
+                
+        elif task.result_type == "string_answer" and task.expected_string is not None:
+            success, string_answer_details = evaluator_instance._evaluators["string_answer"].evaluate(task, output)
+            evaluation["success"] = success
+            evaluation["expected_string"] = task.expected_string
+            evaluation["string_answer_details"] = string_answer_details
+            
+            # Add detailed logging for string_answer evaluation
+            if success:
+                eval_logger.info(f"String answer evaluation PASSED for task '{task.task_path.stem}'")
+            else:
+                error_msg = string_answer_details.get("error", "Unknown string_answer error")
+                eval_logger.warning(f"String answer evaluation FAILED for task '{task.task_path.stem}': {error_msg}")
         
         return evaluation

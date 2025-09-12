@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.11"
 dependencies = [
+    "bs4>=0.0.2",
     "faker>=37.5.3",
     "flask>=3.1.1",
     "langchain-core>=0.1.0",

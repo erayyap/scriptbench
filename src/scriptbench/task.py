@@ -18,6 +18,8 @@ class Task:
         self.description = task_data["task_specification"]["description"]
         self.result_type = task_data["result"]["type"]
         self.expected_result = task_data["result"].get("amount")
+        self.expected_string = task_data["result"].get("expected_string")
+        self.case_sensitive = task_data["result"].get("case_sensitive", True)
         self.threshold = task_data["result"].get("threshold")
         self.ground_truth_file = task_data["result"].get("ground_truth_file")
         self.script_file = task_data["result"].get("script_file")

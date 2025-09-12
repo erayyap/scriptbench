@@ -1,0 +1,8 @@
+difficulty: 4
+task_folder: /count_video_length/benchmark_videos
+task_specification:
+  description: >
+    Write a script that checks videos inside of a folder called "count_video_length" that will be in the same folder the script will run in. There may be folders inside the folder that contain more videos. Inside, find the number of videos that are longer than 2 minutes (>2). Afterwards, print your answer to the command line as: "ANSWER=x". 
+result:
+  type: numerical
+  amount: 24

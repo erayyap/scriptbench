@@ -40,7 +40,7 @@ class EnvironmentManager:
     def _get_temp_dir_prefix(self, task: Task) -> str:
         """Generate appropriate prefix for temp directory based on task."""
         if task.task_folder:
-            return f"scriptbench_{task.task_folder.strip('/')}_"
+            return f"scriptbench_{task.task_folder.strip('/').replace('/', '_')}_"
         elif task.task_file:
             file_stem = Path(task.task_file).stem
             return f"scriptbench_{file_stem}_"

@@ -8,6 +8,7 @@ dependencies = [
     "flask>=3.1.1",
     "langchain-core>=0.1.0",
     "langchain-openai>=0.1.0",
+    "moviepy==1.0.3",
     "pandas>=2.3.1",
     "python-chess>=1.999",
     "python-dotenv>=1.0.0",

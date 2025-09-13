@@ -12,10 +12,10 @@ from .evaluation import NumericalEvaluator, ClassificationEvaluator, ScriptRunEv
 
 class Evaluator:
     """Main evaluator class that coordinates script execution and result evaluation."""
-    
-    def __init__(self, logger: Optional[logging.Logger] = None):
+
+    def __init__(self, logger: Optional[logging.Logger] = None, timeout: Optional[int] = None):
         self.logger = logger or logging.getLogger(__name__)
-        self.timeout = int(os.getenv("SCRIPT_TIMEOUT", "60"))
+        self.timeout = timeout if timeout is not None else int(os.getenv("SCRIPT_TIMEOUT", "60"))
         self._executor = self._create_executor()
         self._evaluators = {
             "numerical": NumericalEvaluator(self.logger),

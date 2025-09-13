@@ -1,5 +1,6 @@
 difficulty: 3
 task_script: /counting_items_server/server.py
+script_timeout: 60
 task_specification:
   description: >
     write a script to check localhost:6793/get_item/{index_number} which is connected to a db, to find how many iterms are stored in db. 

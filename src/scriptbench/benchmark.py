@@ -25,7 +25,6 @@ class ScriptBenchmark:
         self.env_manager = EnvironmentManager(files_dir, self.logger)
         self.llm_manager = LLMManager(self.logger)
         self.code_extractor = CodeExtractor()
-        self.evaluator = Evaluator(self.logger)
     
     def run_benchmark(self, task_name: Optional[str] = None) -> List[Dict[str, Any]]:
         tasks = self.task_loader.load_tasks(self.tasks_dir)
@@ -191,7 +190,9 @@ class ScriptBenchmark:
             "content": script_content
         }
         
-        success, output, stderr, execution_metadata = self.evaluator.run_script(script_path, venv_path, temp_dir)
+        # Create task-specific evaluator with task's timeout
+        evaluator = Evaluator(self.logger, task.script_timeout)
+        success, output, stderr, execution_metadata = evaluator.run_script(script_path, venv_path, temp_dir)
         detailed_log["script_execution"] = execution_metadata
         detailed_log["script_execution"]["stdout"] = output
         detailed_log["script_execution"]["stderr"] = stderr
@@ -223,9 +224,11 @@ class ScriptBenchmark:
         detailed_log["benchmark_metadata"]["script_wait_time_configured"] = task.script_wait_time
         detailed_log["benchmark_metadata"]["elapsed_time_before_script"] = elapsed_seconds
     
-    def _evaluate_and_finalize(self, task: Task, output: str, detailed_log: Dict[str, Any], 
+    def _evaluate_and_finalize(self, task: Task, output: str, detailed_log: Dict[str, Any],
                               start_time: datetime, pip_packages: List[str], apt_packages: List[str], script_content: str, work_dir: Path) -> Dict[str, Any]:
-        evaluation = self.evaluator.evaluate_result(task, output, work_dir, self.logger)
+        # Use task-specific evaluator for result evaluation as well
+        evaluator = Evaluator(self.logger, task.script_timeout)
+        evaluation = evaluator.evaluate_result(task, output, work_dir, self.logger)
         detailed_log["evaluation"] = {
             "success": evaluation["success"],
             "output_analysis": evaluation

@@ -1,4 +1,5 @@
 import json
+import os
 import yaml
 from pathlib import Path
 from typing import Dict, Any, List
@@ -11,10 +12,10 @@ class Task:
         self.task_folder = task_data.get("task_folder")
         self.task_file = task_data.get("task_file")
         self.task_script = task_data.get("task_script")
-        
+
         if self.task_folder and self.task_file:
             raise ValueError("Cannot specify both task_folder and task_file in the same task")
-            
+
         self.description = task_data["task_specification"]["description"]
         self.result_type = task_data["result"]["type"]
         self.expected_result = task_data["result"].get("amount")
@@ -24,6 +25,8 @@ class Task:
         self.ground_truth_file = task_data["result"].get("ground_truth_file")
         self.script_file = task_data["result"].get("script_file")
         self.script_wait_time = task_data.get("script_wait_time", 0)
+        # Task-specific script timeout, falls back to environment default if not specified
+        self.script_timeout = task_data.get("script_timeout", int(os.getenv("SCRIPT_TIMEOUT", "60")))
         self.task_path = task_path
         
     @classmethod

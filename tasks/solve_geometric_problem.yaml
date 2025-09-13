@@ -1,0 +1,23 @@
+difficulty: 5
+task_specification:
+  description: |
+    Write a script to solve this question:
+    A conservator is installing a custom circular memorial plaque into a shallow curved niche whose cross-section (in the plane of the plaque) is described by a simple parabolic profile. Practical constraints determine the plaque's geometric position as follows.
+
+    - The niche profile in a Cartesian coordinate system with origin O is given by y = (3/4) x^2.
+    - A maintenance rail (an oblique straight track used to carry the plaque into place) is a fixed line y = a x + b. The parameters a and b are specified numerically by
+    a := −2/(3·1.39492) + 1e−4,  b := −7/13.
+    - A decorative bolt head that the plaque must clear and pass through has center at the fixed point Q = (√5, 1 + e^(1/3)).
+    - There is an auxiliary circle with center R = (1/2, −1/3) which is required to pass through the fixed point S = (e, 0.2); its radius s is therefore fixed by the distance |R − S|.
+
+    The manufacturable circular plaque must satisfy all of the following simultaneously:
+    1. It is tangent to the parabola y = (3/4) x^2 at exactly one point P = (t, (3/4) t^2) with t ≠ 0.
+    2. Its center C = (x_C, y_C) lies on the maintenance rail y = a x + b.
+    3. It passes through the bolt head center Q.
+    4. It is orthogonal to the auxiliary circle centered at R (whose radius s is fixed by passing through S).
+
+    Determine the plaque’s radius r (a single real number). Give a high-precision numerical value (printable to many digits). Do not assume any simplifications beyond the relations stated above. Print r as ANSWER=x, where x is true to the nearest 15 decimal digits.
+
+result:
+  type: numerical
+  amount: 23.282108820525765

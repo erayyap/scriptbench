@@ -1,6 +1,6 @@
 difficulty: 2
 task_script: /agentic_reddit_post_checker/server.py
-script_wait_time: 30
+script_wait_time: 50
 task_specification:
   description: |
     Your task is to write a Python script that explores a local Reddit-style API running at localhost:8834/api/. Once you navigate the API, you need to find the "tech" related subreddit from the ten available. After identifying the correct subreddit, fetch all of its posts that were created after April 8, 2022. For each of these posts, your script must then fetch its comments and calculate their average number of downvotes. The final objective is to identify the post with the highest average downvotes and print its ID in the specific format ANSWER=x.

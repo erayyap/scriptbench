@@ -58,8 +58,8 @@ class ScriptBenchmark:
                     "task_name": task.task_path.stem,
                     "success": False,
                     "error": f"Critical error: {str(e)}",
-                    "difficulty": getattr(task, 'difficulty', 'unknown'),
-                    "result_type": getattr(task, 'result_type', 'unknown'),
+                    "difficulty": task.difficulty,
+                    "result_type": task.result_type,
                     "output": ""
                 }
                 results.append(critical_error_result)
@@ -268,7 +268,9 @@ class ScriptBenchmark:
         return {
             "task_name": task.task_path.stem,
             "success": False,
-            "error": "No Python script found in LLM response"
+            "error": "No Python script found in LLM response",
+            "difficulty": task.difficulty,
+            "result_type": task.result_type
         }
     
     def _handle_package_error(self, task: Task, detailed_log: Dict[str, Any]) -> Dict[str, Any]:
@@ -278,7 +280,9 @@ class ScriptBenchmark:
         return {
             "task_name": task.task_path.stem,
             "success": False,
-            "error": "Failed to install packages"
+            "error": "Failed to install packages",
+            "difficulty": task.difficulty,
+            "result_type": task.result_type
         }
     
     def _handle_execution_error(self, task: Task, detailed_log: Dict[str, Any], stderr: str) -> Dict[str, Any]:
@@ -288,7 +292,9 @@ class ScriptBenchmark:
         return {
             "task_name": task.task_path.stem,
             "success": False,
-            "error": f"Script execution failed: {stderr}"
+            "error": f"Script execution failed: {stderr}",
+            "difficulty": task.difficulty,
+            "result_type": task.result_type
         }
     
     def _handle_unexpected_error(self, task: Task, detailed_log: Dict[str, Any], 
@@ -306,5 +312,7 @@ class ScriptBenchmark:
         return {
             "task_name": task.task_path.stem,
             "success": False,
-            "error": f"Unexpected error: {str(error)}"
+            "error": f"Unexpected error: {str(error)}",
+            "difficulty": task.difficulty,
+            "result_type": task.result_type
         }

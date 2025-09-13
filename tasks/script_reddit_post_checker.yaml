@@ -1,0 +1,356 @@
+difficulty: 2
+task_script: /agentic_reddit_post_checker/server.py
+script_wait_time: 30
+task_specification:
+  description: |
+    Your task is to write a Python script that explores a local Reddit-style API running at localhost:8834/api/. Once you navigate the API, you need to find the "tech" related subreddit from the ten available. After identifying the correct subreddit, fetch all of its posts that were created after April 8, 2022. For each of these posts, your script must then fetch its comments and calculate their average number of downvotes. The final objective is to identify the post with the highest average downvotes and print its ID in the specific format ANSWER=x.
+    API DOCUMENTATION:
+
+    ---
+
+    # Reddit-Lite API v2.1 Documentation
+
+    This document provides detailed information on how to interact with the Reddit-Lite API.
+
+    ## Table of Contents
+    1.  [General Information](#general-information)
+    2.  [Authentication](#authentication)
+    3.  [Core Endpoints](#core-endpoints)
+        *   [GET /api/](#get-api)
+        *   [POST /api/auth/request_key](#post-apiauthrequest_key)
+        *   [GET /api/subreddits](#get-apisubreddits)
+        *   [GET /api/posts](#get-apiposts)
+        *   [GET /api/posts/{post_id}/comments](#get-apipostspost_idcomments)
+    4.  [Informational & Beta Endpoints](#informational--beta-endpoints)
+        *   [GET /api/status](#get-apistatus)
+        *   [GET /api/users/{username}](#get-apiusersusername)
+        *   [GET /api/search](#get-apisearch)
+    5.  [Data Models](#data-models)
+        *   [Subreddit Object](#subreddit-object)
+        *   [Post Object](#post-object)
+        *   [Comment Object](#comment-object)
+
+    ---
+
+    ## 1. General Information
+
+    *   **Base URL**: `http://localhost:8834/api`
+    *   **Response Format**: All responses are in `JSON` format.
+    *   **Data**: The API serves a large, static dataset generated at server startup. The data is consistent across server restarts due to a fixed random seed.
+
+    ## 2. Authentication
+
+    Certain endpoints are protected and require an API key for access.
+
+    ### How to get an API Key
+    To obtain a key, you must make a `POST` request to the `/api/auth/request_key` endpoint.
+
+    ### How to use the API Key
+    The API key must be included in the `Authorization` header of your request, prefixed with `Bearer `.
+
+    *   **Header Format**: `Authorization: Bearer <your_api_key>`
+
+    **Example `curl` command for an authenticated request:**
+    ```bash
+    curl -X GET "http://localhost:8834/api/posts?subreddit_id=1" \
+        -H "Authorization: Bearer blabla"
+    ```
+
+    ### Authentication Errors
+
+    *   **401 Unauthorized**: Returned if the `Authorization` header is missing or improperly formatted. The response will include a hint.
+        ```json
+        {
+          "error": "Authorization required.",
+          "hint": "Request an API key from the auth endpoint and provide it as 'Authorization: Bearer <key>'."
+        }
+        ```
+    *   **403 Forbidden**: Returned if the provided API key is invalid.
+        ```json
+        {
+          "error": "Forbidden. Invalid API Key."
+        }
+        ```
+
+    ---
+
+    ## 3. Core Endpoints
+
+    These are the primary endpoints for retrieving data from the API.
+
+    ### `GET /api/`
+    The root discovery endpoint. It provides a map of all available endpoints in the API.
+
+    *   **Description**: Returns a welcome message and a list of all available API routes, their methods, and a brief description.
+    *   **Authentication**: Not required.
+    *   **Parameters**: None.
+
+    *   **Success Response (200 OK)**:
+        ```json
+        {
+          "message": "Welcome to the Reddit-Lite API v2.1. See available endpoints below.",
+          "endpoints": {
+            "self": {
+              "url": "/api/",
+              "method": "GET",
+              "description": "This discovery document."
+            },
+            "request_api_key": {
+              "url": "/api/auth/request_key",
+              "method": "POST",
+              "description": "POST to receive an API key for accessing protected resources. Body is not required."
+            },
+            "list_subreddits": {
+              "url": "/api/subreddits",
+              "method": "GET",
+              "description": "List all available subreddits."
+            },
+            "list_posts": {
+              "url": "/api/posts?subreddit_id={id}",
+              "method": "GET",
+              "description": "List posts for a specific subreddit. Requires Authorization."
+            },
+            "list_comments": {
+              "url": "/api/posts/{post_id}/comments",
+              "method": "GET",
+              "description": "List comments for a specific post. Requires Authorization."
+            },
+            "server_status": {
+              "url": "/api/status",
+              "method": "GET",
+              "description": "[INFO] Check the server's operational status."
+            },
+            "user_profile": {
+              "url": "/api/users/{username}",
+              "method": "GET",
+              "description": "[INFO] Get profile information for a user."
+            },
+            "search_content": {
+              "url": "/api/search?q={query}",
+              "method": "GET",
+              "description": "[BETA] Search for content across the platform. Requires Authorization."
+            }
+          }
+        }
+        ```
+
+    ---
+
+    ### `POST /api/auth/request_key`
+    Endpoint to retrieve an API key for protected routes.
+
+    *   **Description**: Returns the static API key for this server instance.
+    *   **Authentication**: Not required.
+    *   **Parameters**: None. Request body is not required.
+
+    *   **Success Response (200 OK)**:
+        ```json
+        {
+          "api_key": "blabla"
+        }
+        ```
+
+    ---
+
+    ### `GET /api/subreddits`
+    Retrieves a list of all available subreddits.
+
+    *   **Description**: Returns a JSON array of [Subreddit Objects](#subreddit-object).
+    *   **Authentication**: Not required.
+    *   **Parameters**: None.
+
+    *   **Success Response (200 OK)**:
+        ```json
+        [
+          {
+            "id": 1,
+            "name": "r/CozyPlaces",
+            "description": "Pictures of cozy places."
+          },
+          {
+            "id": 2,
+            "name": "r/AskHistory",
+            "description": "Get answers to your history questions."
+          }
+        ]
+        ```
+
+    ---
+
+    ### `GET /api/posts`
+    Retrieves a list of posts for a specific subreddit.
+
+    *   **Description**: Returns a JSON array of [Post Objects](#post-object) belonging to the specified subreddit.
+    *   **Authentication**: **Required**.
+    *   **Query Parameters**:
+        *   `subreddit_id` (integer, **required**): The unique identifier for the subreddit.
+
+    *   **Success Response (200 OK)**:
+        ```json
+        [
+          {
+            "id": 123,
+            "subreddit_id": 1,
+            "title": "A warm cabin in the snow.",
+            "author": "john_doe",
+            "created_utc": "2022-12-25T14:30:00Z",
+            "comments_url": "/api/posts/123/comments"
+          },
+          {
+            "id": 456,
+            "subreddit_id": 1,
+            "title": "Rainy day by the fireplace.",
+            "author": "jane_smith",
+            "created_utc": "2023-01-10T18:00:00Z",
+            "comments_url": "/api/posts/456/comments"
+          }
+        ]
+        ```
+
+    *   **Error Responses**:
+        *   `400 Bad Request`: If `subreddit_id` query parameter is missing or not an integer.
+            ```json
+            // Missing parameter
+            {"error": "Missing required query parameter: subreddit_id"}
+            // Invalid format
+            {"error": "Invalid subreddit_id format. Must be an integer."}
+            ```
+
+    ---
+
+    ### `GET /api/posts/{post_id}/comments`
+    Retrieves all comments for a specific post.
+
+    *   **Description**: Returns a JSON array of [Comment Objects](#comment-object) for the given post.
+    *   **Authentication**: **Required**.
+    *   **URL Parameters**:
+        *   `post_id` (integer, **required**): The unique identifier for the post.
+
+    *   **Success Response (200 OK)**:
+        ```json
+        [
+          {
+            "id": 5001,
+            "post_id": 123,
+            "author": "user_1",
+            "text": "This is the first comment.",
+            "upvotes": 150,
+            "downvotes": 5
+          },
+          {
+            "id": 5002,
+            "post_id": 123,
+            "author": "user_2",
+            "text": "This is a reply to the post.",
+            "upvotes": 75,
+            "downvotes": 2
+          }
+        ]
+        ```
+
+    *   **Error Responses**:
+        *   `404 Not Found`: If no post exists with the given `post_id`.
+            ```json
+            {"error": "Post not found"}
+            ```
+
+    ---
+
+    ## 4. Informational & Beta Endpoints
+
+    These endpoints provide metadata or are experimental.
+
+    ### `GET /api/status`
+    Checks the operational status of the API server.
+
+    *   **Description**: Returns a simple JSON object indicating the server is online, along with the API version and current UTC timestamp.
+    *   **Authentication**: Not required.
+
+    *   **Success Response (200 OK)**:
+        ```json
+        {
+          "status": "online",
+          "version": "2.1.0",
+          "timestamp": "2023-10-27T10:00:00.123456+00:00"
+        }
+        ```
+
+    ---
+
+    ### `GET /api/users/{username}`
+    Retrieves the profile for a given username.
+
+    *   **Description**: Returns the user profile.
+    *   **Authentication**: Not required.
+    *   **URL Parameters**:
+        *   `username` (string, **required**): The username to look up.
+
+    *   **Success Response (200 OK)**:
+        ```json
+        {
+          "username": "some_user",
+          "member_since": "1985-03-15",
+          "bio": "A sentence describing the user.",
+          "location": "New York",
+          "karma": 54321
+        }
+        ```
+
+    ---
+
+    ### `GET /api/search`
+    A beta endpoint for searching content. **Note: This endpoint is a placeholder and will always return an empty result set.**
+
+    *   **Description**: Simulates a search query.
+    *   **Authentication**: **Required**.
+    *   **Query Parameters**:
+        *   `q` (string, **required**): The search query term.
+
+    *   **Success Response (200 OK)**:
+        ```json
+        []
+        ```
+
+    *   **Error Responses**:
+        *   `400 Bad Request`: If the `q` query parameter is missing.
+            ```json
+            {"error": "Missing search query parameter: q"}
+            ```
+
+    ---
+
+    ## 5. Data Models
+
+    ### Subreddit Object
+    Represents a subreddit community.
+    | Field         | Type    | Description                               |
+    |---------------|---------|-------------------------------------------|
+    | `id`          | Integer | The unique identifier for the subreddit.  |
+    | `name`        | String  | The name of the subreddit (e.g., "r/Art").|
+    | `description` | String  | A brief description of the subreddit.     |
+
+    ### Post Object
+    Represents a post within a subreddit.
+    | Field           | Type   | Description                                                                 |
+    |-----------------|--------|-----------------------------------------------------------------------------|
+    | `id`            | Integer| The unique identifier for the post.                                         |
+    | `subreddit_id`  | Integer| The ID of the parent subreddit.                                             |
+    | `title`         | String | The title of the post.                                                      |
+    | `author`        | String | The username of the post's author.                                          |
+    | `created_utc`   | String | The creation date and time in ISO 8601 format (e.g., `2023-10-27T10:30:00Z`). |
+    | `comments_url`  | String | The relative URL to fetch comments for this post.                           |
+
+    ### Comment Object
+    Represents a comment on a post.
+    | Field         | Type    | Description                                |
+    |---------------|---------|--------------------------------------------|
+    | `id`          | Integer | The unique identifier for the comment.     |
+    | `post_id`     | Integer | The ID of the parent post.                 |
+    | `author`      | String  | The username of the comment's author.      |
+    | `text`        | String  | The body content of the comment.           |
+    | `upvotes`     | Integer | The number of upvotes the comment received.|
+    | `downvotes`   | Integer | The number of downvotes the comment received.|
+        
+result:
+  type: numerical
+  amount: 14137

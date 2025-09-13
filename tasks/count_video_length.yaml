@@ -1,4 +1,4 @@
-difficulty: 4
+difficulty: 3
 task_folder: /count_video_length/benchmark_videos
 task_specification:
   description: >

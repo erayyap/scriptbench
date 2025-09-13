@@ -1,5 +1,6 @@
 difficulty: 8
 task_script: /agentic_reddit_post_checker/server.py
+script_wait_time: 30
 task_specification:
   description: >
     Create a script that monitors localhost:8834/api/ which serves Reddit-style posts from a local database.

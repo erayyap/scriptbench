@@ -23,6 +23,7 @@ class Task:
         self.threshold = task_data["result"].get("threshold")
         self.ground_truth_file = task_data["result"].get("ground_truth_file")
         self.script_file = task_data["result"].get("script_file")
+        self.script_wait_time = task_data.get("script_wait_time", 0)
         self.task_path = task_path
         
     @classmethod

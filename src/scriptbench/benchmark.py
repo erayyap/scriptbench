@@ -1,4 +1,5 @@
 import os
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, Dict, Any
@@ -81,6 +82,10 @@ class ScriptBenchmark:
             llm_response, llm_metadata = self.llm_manager.prompt_for_solution(task)
             detailed_log["llm_interaction"] = llm_metadata
             
+            # Add checkpoint after LLM interaction
+            llm_end_time = datetime.now()
+            detailed_log["benchmark_metadata"]["llm_end_time"] = llm_end_time.isoformat()
+            
             pip_packages, apt_packages, script_content = self._extract_code(llm_response, detailed_log)
             
             if not script_content:
@@ -89,6 +94,9 @@ class ScriptBenchmark:
             # Install packages but continue execution even if some fail
             self._install_apt_packages(apt_packages, detailed_log)
             self._install_packages(venv_path, pip_packages, detailed_log)
+            
+            # Handle script wait time before execution
+            self._handle_script_wait_time(task, task_start_time, detailed_log)
             
             success, output, stderr = self._execute_script(script_content, temp_dir, venv_path, detailed_log)
             
@@ -189,6 +197,31 @@ class ScriptBenchmark:
         detailed_log["script_execution"]["stderr"] = stderr
         
         return success, output, stderr
+    
+    def _handle_script_wait_time(self, task: Task, task_start_time: datetime, detailed_log: Dict[str, Any]):
+        """Handle script wait time using time checkpoints."""
+        if task.script_wait_time <= 0:
+            return
+        
+        current_time = datetime.now()
+        elapsed_seconds = (current_time - task_start_time).total_seconds()
+        
+        if elapsed_seconds < task.script_wait_time:
+            remaining_wait = task.script_wait_time - elapsed_seconds
+            self.logger.info(f"Script wait time: {task.script_wait_time}s configured, {elapsed_seconds:.2f}s elapsed, waiting additional {remaining_wait:.2f}s")
+            time.sleep(remaining_wait)
+            
+            # Log final checkpoint after wait
+            final_time = datetime.now()
+            detailed_log["benchmark_metadata"]["script_execution_start_time"] = final_time.isoformat()
+            detailed_log["benchmark_metadata"]["total_wait_applied"] = remaining_wait
+        else:
+            self.logger.info(f"Script wait time: {task.script_wait_time}s configured, {elapsed_seconds:.2f}s already elapsed, no additional wait needed")
+            detailed_log["benchmark_metadata"]["script_execution_start_time"] = current_time.isoformat()
+            detailed_log["benchmark_metadata"]["total_wait_applied"] = 0
+        
+        detailed_log["benchmark_metadata"]["script_wait_time_configured"] = task.script_wait_time
+        detailed_log["benchmark_metadata"]["elapsed_time_before_script"] = elapsed_seconds
     
     def _evaluate_and_finalize(self, task: Task, output: str, detailed_log: Dict[str, Any], 
                               start_time: datetime, pip_packages: List[str], apt_packages: List[str], script_content: str, work_dir: Path) -> Dict[str, Any]:

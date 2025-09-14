@@ -97,7 +97,7 @@ class ScriptBenchmark:
             # Handle script wait time before execution
             self._handle_script_wait_time(task, task_start_time, detailed_log)
             
-            success, output, stderr = self._execute_script(script_content, temp_dir, venv_path, detailed_log)
+            success, output, stderr = self._execute_script(script_content, temp_dir, venv_path, detailed_log, task)
             
             if not success:
                 return self._handle_execution_error(task, detailed_log, stderr)
@@ -175,7 +175,7 @@ class ScriptBenchmark:
         }
         return success
     
-    def _execute_script(self, script_content: str, temp_dir: Path, venv_path: Path, detailed_log: Dict[str, Any]):
+    def _execute_script(self, script_content: str, temp_dir: Path, venv_path: Path, detailed_log: Dict[str, Any], task: Task):
         script_path = temp_dir / "script.py"
         with open(script_path, 'w') as f:
             f.write(script_content)

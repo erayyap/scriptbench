@@ -1,0 +1,125 @@
+difficulty: 5
+task_specification:
+  description: |
+    Write a Python script to simulate a tile-based wargame called "Kingdoms of the Four Winds" and determine the winner. The simulation must run on a predefined map and implement specific AI behaviors for four different kingdoms. The script should be self-contained and print the name of the winning kingdom. Print the answer like ANSWER="X" where X is the name of the kingdom. (Like: "Crimson Empire", "Golden Republic", "Verdant Swarm", "Azure Syndicate")
+
+    ````
+    **Game Rules:**
+
+    1.  **Board & Map:** The game is played on a 10x10 grid. The map layout is fixed:
+        ```
+        1.FF.M...2
+        .F.M.M.F..
+        F..MM.F.F.
+        ..M..F..M.
+        M....M..FM
+        MF..M....M
+        .M..F..M..
+        .F.F.MM..F
+        ..F.M.M.F.
+        4...M.FF.3
+        ```
+        - `1`, `2`, `3`, `4`: Capital starting positions for Crimson, Golden, Verdant, and Azure kingdoms respectively.
+        - `F`: Forest (generates resources).
+        - `M`: Mountain (impassable).
+        - `.`: Plains.
+
+    2.  **Setup:** Each of the four kingdoms starts with 1 Legion unit on their Capital and 5 Gold.
+
+    3.  **Turn Order & Rounds:** Rounds proceed in the fixed order **Crimson → Golden → Verdant → Azure**. A round is complete after all living kingdoms have taken a turn.
+
+    4.  **Income & Upkeep Phase (at the start of each kingdom’s turn):**
+        - **Capital Income:** Gain **+3 Gold only if you currently control your own capital tile**.
+        - **Forest Income:** Gain **+1 Gold per controlled Forest** (Golden Republic trait modifies this; see Traits).
+        - **Upkeep:** Pay **1 Gold per Legion** you control.
+        - **Bankruptcy:** If Gold becomes negative, **disband Legions at random one-by-one** until Gold is **≥ 0** or you have no Legions left.
+
+    5.  **Action Phase:** Each Legion may perform one action per turn (Move/Attack/Expand). Recruiting is a capital action and also happens during the Action Phase as specified by each AI.
+
+    6.  **Movement Resolution:**
+        - **Path planning:** When a legion “moves toward” a target, compute a **shortest path using 4-directional BFS that ignores all legions**
+
+        - **Execution:** The legion then takes **up to its movement range** steps **along that path**:
+          - If the next step is **empty**, move onto it and claim the tile.
+          - If the next step has an **enemy legion**, initiate combat on that tile (see Combat).
+          - If the next step has a **friendly legion**, the move **ends** (you cannot move through allies or share a tile).
+        - **No path:** If no path exists (mountain blockage), the legion does not move.
+        - **Ties:** If multiple shortest paths exist, any consistent tie-break is acceptable (e.g., lexicographic by (row, col)).
+
+    7.  **Combat (Overwhelm Mechanic):**
+        - The **defending Legion is always destroyed**.
+        - The **attacking Legion survives only if** at least one other **friendly Legion is orthogonally adjacent to the attacker’s starting tile** (before it moved to attack).
+        - If unsupported, the attacker is also destroyed (1-for-1 trade), and the tile becomes **neutral** (no owner).
+
+    8.  **Ownership:**
+        - Moving a Legion into an empty tile claims it for that Legion’s kingdom.
+        - After combat:
+          - If the attacker survives, it occupies and claims the defender’s tile.
+          - If both die (unsupported attack), the combat tile becomes neutral/unowned.
+
+    9.  **Victory, Elimination & Spoils:**
+        - **Elimination timing:** A kingdom is eliminated if, **at the end of a round**, its capital tile is occupied by an enemy Legion.
+        - **Spoils of Conquest:** When a kingdom is eliminated, the conquering kingdom **immediately seizes all remaining Gold** of the defeated kingdom and **claims all of its territory**. All legions of the defeated kingdom are removed.
+        - **Last kingdom standing wins.**
+        - **Stalemate:** If no winner after **300 rounds**, print `ANSWER="DRAW"` and terminate.
+
+    **The Four Kingdoms & Traits:**
+
+    1.  **The Crimson Empire (Aggressor):**
+        - **Trait — Rage of the Forge:** **Recruiting a Legion costs 4 Gold** instead of 5.
+
+    2.  **The Golden Republic (Builder):**
+        - **Trait — Tithe of the Land:** Gains **+1 extra Gold per Forest** during Income (i.e., **+2 per Forest** total).
+
+    3.  **The Verdant Swarm (Expansionist):**
+        - **Trait — Forced March:** Legions have **movement range = 2** instead of 1.
+
+    4.  **The Azure Syndicate (Opportunist):**
+        - **Trait — Spoils of War:** Gains **+2 Gold whenever two *other* kingdoms** fight on a tile **adjacent to any Azure-controlled tile** (count once per combat event if the combat tile is adjacent to at least one Azure tile).
+
+    **AI Behavior Pseudocode (uses the Movement Resolution above):**
+
+    **Crimson Empire (Aggressor):**
+    1. Identify the **Primary Target Kingdom** (the enemy whose capital is closest by path length).
+    2. If a legion sits on your capital, **move it off toward the Primary Target** to free the capital.
+    3. **Recruit** on the capital if affordable and the capital tile is empty.
+    4. For **each legion**, move/attack toward the **closest unit or the capital of the Primary Target only**.
+
+    **Golden Republic (Builder):**
+    1. **Recruit** on the capital if affordable and the capital tile is empty.
+    2. Determine a **Crusade Target**: an enemy that has both **less gold** and **fewer legions** than you.
+    3. For **each legion**, in priority order:
+      a. **Defense:** If any enemy is within **4 tiles of your capital**, move to attack that enemy.
+      b. **Crusade:** If a Crusade Target exists, move/attack toward its nearest unit/capital.
+      c. **Economy:** Move to claim the **nearest unclaimed Forest**.
+      d. **Fortify:** Move to the nearest **owned tile that borders** another kingdom.
+
+    **Verdant Swarm (Expansionist):**
+    1. **Recruit** on the capital if affordable and the capital tile is empty.
+    2. Compute the share of **unclaimed non-mountain tiles**. If < **20%** of all tiles → **Constriction Phase**, else **Expansion Phase**.
+      - **Constriction:** Identify the enemy with the **smallest territory** (fewest owned tiles) as the **Hunt Target**.
+      - **Expansion:** Continue claiming neutral land.
+    3. For **each legion**:
+      - **Constriction:** Move/attack toward the Hunt Target’s nearest unit/capital.
+      - **Expansion:** Move to claim the **nearest unclaimed non-mountain tile**.
+
+    **Azure Syndicate (Opportunist):**
+    1. **Recruit** on the capital if affordable, the capital tile is empty, **and** you have **fewer legions than the average** legion count of your living opponents.
+    2. Identify the **Weakest Kingdom** using the score **`legions + (gold / 5)`** (use real division).
+    3. **Attack Mode** is ON if the Weakest Kingdom has **fewer legions than 70%** of your legion count.
+    4. For **each legion**:
+      - If **Attack Mode**, move/attack toward the **Weakest Kingdom’s capital**.
+      - Otherwise, try to **steal the nearest undefended enemy tile** (enemy-owned with no legion). If none, move to your **nearest border tile** and wait.
+
+    **Implementation Notes (to avoid ambiguity):**
+    - Movement is **4-directional** only; no diagonals.
+    - **Mountains are impassable** for pathfinding and movement.
+    - **At most one legion per tile**; you cannot move into a friendly-occupied tile.
+    - When multiple equally valid choices exist (targets, paths, or steps), any **consistent deterministic tie-break** is acceptable (e.g., lowest (row, col)).
+    ````
+
+
+
+result:
+  type: string_answer
+  expected_string: "Verdant Swarm"

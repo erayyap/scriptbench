@@ -6,5 +6,5 @@ task_specification:
     Print out the track id like: "ANSWER=x"
 
 result:
-  type: script_answer
+  type: string_answer
   expected_string: "310CmUstbdDdogxSO340qU"

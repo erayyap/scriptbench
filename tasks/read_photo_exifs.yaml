@@ -1,0 +1,17 @@
+difficulty: 6
+task_folder: /read_photo_exifs/photos
+task_specification:
+  description: >
+    Write a Python script that looks through all .jpg/.jpeg files in the folder (& subfolders) I will run the script in.
+    and prints the earliest photo timestamp it can find, as UTC in this exact
+    format: ANSWER="YYYY-MM-DDTHH:MM:SSZ".
+
+    Use the photo’s EXIF time if it exists — prefer the “original” shot time,
+    otherwise fall back to the generic time, otherwise the “digitized” time.
+    If the file also includes a timezone offset (like +03:00), convert to UTC.
+    If there’s no offset, just treat it as already UTC (don’t guess).
+    Skip files that don’t have any EXIF time at all.
+
+result:
+  type: string_answer
+  expected_string: "2005-01-01T00:00:00Z"

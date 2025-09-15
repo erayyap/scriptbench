@@ -1,0 +1,17 @@
+difficulty: 2
+task_file: /pythonic_smell_checker/main.py
+task_specification:
+  description: |
+    Write a Python script named `check_smells.py` that checks how many smells are present in "./main.py" (Present in the folder I will run the script in.)
+    
+    The script must analyze the target file for the following code smells:
+    
+    1.  **Long Line Length**: Count any line with more than 99 characters.
+    2.  **Long Parameter List**: Count any function definition with more than 5 parameters.
+    3.  **High Cyclomatic Complexity**: Count any function with a complexity score greater than 5. For this task, calculate complexity as `1 +` the total number of `if`, `for`, `while`, `and`, `or`, and `except` handlers within the function.
+    4.  **Unexplained Numbers in Logic**: Count hard-coded numbers that appear directly within logical conditions, decisions, or mathematical calculations. A number should *not* be counted if its purpose is to define a value, such as when it is being assigned to a variable or when it serves as a data value inside a collection like a list or dictionary. The common utility numbers `0`, `1`, and `-1` should always be ignored.
+
+    After analyzing the file, the script must print the total count of all detected smells combined to the terminal in the exact format "ANSWER=x", where x is the total integer count.
+result:
+  type: numerical
+  amount: 16

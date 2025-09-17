@@ -44,13 +44,14 @@ scriptbench/
 │   ├── benchmark.py           # Core benchmarking logic
 │   ├── main.py               # CLI entry point
 │   ├── task.py               # Task definition and loading
-│   ├── llm_manager.py        # LLM interaction management
+│   ├── inference/            # Inference backends (OpenAI, Mini SWE agent)
 │   ├── evaluator.py          # Result evaluation system
 │   ├── environment.py        # Environment setup and management
 │   ├── code_extraction.py    # Extract code/packages from LLM responses
-│   ├── logger.py            # Detailed logging system
-│   ├── execution/           # Script execution modules
-│   └── evaluation/          # Evaluation strategies
+│   ├── logger.py             # Detailed logging system
+│   ├── execution/            # Script execution modules
+│   ├── evaluation/           # Evaluation strategies
+│   └── config/               # Mini SWE agent configuration
 ├── tasks/                   # Task definitions (YAML)
 ├── files/                   # Task-specific data files
 └── logs/                    # Execution logs and results
@@ -79,6 +80,8 @@ OPENAI_TEMPERATURE=0
 make local-run
 # or
 python -m scriptbench.main
+# run with the Mini SWE agent
+python -m scriptbench.main --inference-backend mini-swe
 ```
 
 ### Run Specific Task
@@ -111,6 +114,24 @@ Key environment variables:
 - `OPENAI_TEMPERATURE`: Model temperature (default: 0)
 - `SCRIPT_TIMEOUT`: Script execution timeout in seconds (default: 600)
 - `LOG_LEVEL`: Logging level (default: INFO)
+- `SCRIPTBENCH_INFERENCE_BACKEND`: Selects the inference backend (`openai` or `mini-swe`). Defaults to `openai`.
+
+### Inference Backends
+
+ScriptBench supports multiple inference providers via the `--inference-backend` CLI flag (or the `SCRIPTBENCH_INFERENCE_BACKEND` environment variable):
+
+- `openai` *(default)*: Uses LangChain’s `ChatOpenAI` with the prompt structure described earlier. Behaviour is unchanged from previous releases.
+- `mini-swe`: Runs the Mini SWE agent in an isolated scratch workspace. The agent iterates freely, then writes a `submission.md` file that contains three fenced code blocks (`apt`, `pip`, `script`). ScriptBench parses this file to extract dependencies and the final Python solution before executing it in the standard pipeline. The agent trajectory and full workspace are copied into the per-task log directory for inspection.
+
+Mini SWE backend configuration:
+
+- `MINI_SWE_MODEL_NAME` *(optional)* – model name passed to Mini SWE. Falls back to `OPENAI_MODEL` if unset.
+- `MINI_SWE_MODEL_CLASS` *(optional)* – explicit Mini SWE model class (e.g. `anthropic`).
+- `MINI_SWE_MODEL_API_KEY` *(optional)* – API key for the Mini SWE model. Falls back to `OPENAI_API_KEY` if unset.
+- `MINI_SWE_MODEL_BASE_URL` *(optional)* – base URL forwarded to LiteLLM. Falls back to the `OPENAI_BASE_URL_RUNNER` value.
+
+The Mini SWE agent uses the bundled `src/scriptbench/config/mini_swe.yaml` prompt, which enforces the `submission.md` contract and completion signal (`echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT`).
+Make sure the [`mini-swe-agent`](https://github.com/openai/mini-swe-agent) package is available in your environment (e.g. `pip install mini-swe-agent`) before selecting this backend.
 
 ## Task Definition Format
 

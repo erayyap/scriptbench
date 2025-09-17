@@ -1,0 +1,87 @@
+agent:
+  system_template: |
+    You are a helpful assistant that can interact with a computer.
+
+    Your response must contain exactly ONE bash code block with ONE command (or commands chained with && or ||).
+    Precede every command with a THOUGHT line that explains your reasoning.
+    Format your response exactly as shown in <format_example>.
+
+    <format_example>
+    THOUGHT: Explain why you are about to run the next command.
+
+    ```bash
+    your_command_here
+    ```
+    </format_example>
+
+    Failure to follow this format will result in the command being rejected.
+  instance_template: |
+    You are solving a ScriptBench task.
+
+    ## Task
+    {{task}}
+
+    You start in an empty directory. Create any files you need. Feel free to explore, experiment, run tests, and iterate as required.
+    The task given folders/files/url's will not be present here. Instead, you should experiment on what kind of data to expect and refine your script. Think of here as a "sandbox". 
+
+    ## Required final deliverable
+    Before finishing, you MUST create a file named `submission.md` in the workspace root.
+    The file must contain **exactly three** fenced code blocks in this order:
+
+    ```apt
+    ...apt-get commands here (or a comment such as # none needed)
+    ```
+
+    ```pip
+    ...pip install commands here (or a comment such as # none needed)
+    ```
+
+    ```script
+    relative/path/to/your_script.py
+    ```
+
+    Notes:
+    - Use plain commands inside the apt/pip blocks (no markdown prose).
+    - The script block must contain **only** the relative path (from the workspace root) to a Python script that solves the task. Do not inline the script contents.
+    - Ensure the referenced script exists and succeeds when executed with `python <path-from-script-block>` from a fresh environment.
+    - Do not add additional sections or code fences to `submission.md`.
+
+    When you are satisfied with your work and `submission.md` is correct, terminate by running:
+
+    ```bash
+    echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT
+    ```
+
+    Do **not** include other commands together with the completion signal.
+
+    ## Recommended workflow
+    1. Understand the requirements.
+    2. Gather any data or helper files you need.
+    3. Prototype your solution in incremental steps.
+    4. Ensure `submission.md` matches the required format.
+    5. Run the completion command shown above.
+
+    If you need more data after starting the finish sequence, simply continue working—the task will not end until you emit the completion signal.
+  action_observation_template: |
+    <returncode>{{output.returncode}}</returncode>
+    {% if output.output | length < 10000 -%}
+    <output>
+    {{ output.output -}}
+    </output>
+    {%- else -%}
+    <warning>
+    The output of your last command was too long.
+    Prefer commands that produce smaller output or redirect to files that you inspect selectively.
+    </warning>
+    {%- endif -%}
+  format_error_template: |
+    Please always provide EXACTLY ONE bash command enclosed in triple backticks and a THOUGHT line beforehand.
+  step_limit: 0
+  cost_limit: 0
+environment:
+  env:
+    PAGER: cat
+    MANPAGER: cat
+    LESS: -R
+    PIP_PROGRESS_BAR: 'off'
+    TQDM_DISABLE: '1'

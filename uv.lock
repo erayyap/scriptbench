@@ -824,7 +824,7 @@ wheels = [
 
 [[package]]
 name = "openai"
-version = "1.99.3"
+version = "1.107.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -836,9 +836,9 @@ dependencies = [
     { name = "tqdm" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/72/d3/c372420c8ca1c60e785fd8c19e536cea8f16b0cfdcdad6458e1d8884f2ea/openai-1.99.3.tar.gz", hash = "sha256:1a0e2910e4545d828c14218f2ac3276827c94a043f5353e43b9413b38b497897", size = 504932, upload-time = "2025-08-07T20:35:15.893Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e3/24/7fb5749bcf66b52209e3ece05cb4eaeae2102e95f8ae77589e8afaf70ba8/openai-1.107.3.tar.gz", hash = "sha256:69bb8032b05c5f00f7660e422f70f9aabc94793b9a30c5f899360ed21e46314f", size = 564194, upload-time = "2025-09-15T20:09:20.159Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/92/bc/e52f49940b4e320629da7db09c90a2407a48c612cff397b4b41b7e58cdf9/openai-1.99.3-py3-none-any.whl", hash = "sha256:c786a03f6cddadb5ee42c6d749aa4f6134fe14fdd7d69a667e5e7ce7fd29a719", size = 785776, upload-time = "2025-08-07T20:35:13.653Z" },
+    { url = "https://files.pythonhosted.org/packages/16/1d/58ad0084451f64a9193de48c0afd63047682ffdedb6ae1d494a203e03fd5/openai-1.107.3-py3-none-any.whl", hash = "sha256:4ca54a847235ac04c6320da70fdc06b62d71439de9ec0aa40d5690c3064d4025", size = 947600, upload-time = "2025-09-15T20:09:18.219Z" },
 ]
 
 [[package]]
@@ -1489,9 +1489,11 @@ dependencies = [
     { name = "bs4" },
     { name = "faker" },
     { name = "flask" },
+    { name = "jinja2" },
     { name = "langchain-core" },
     { name = "langchain-openai" },
     { name = "moviepy" },
+    { name = "openai" },
     { name = "pandas" },
     { name = "piexif" },
     { name = "pillow" },
@@ -1515,9 +1517,11 @@ requires-dist = [
     { name = "bs4", specifier = ">=0.0.2" },
     { name = "faker", specifier = ">=37.5.3" },
     { name = "flask", specifier = ">=3.1.1" },
+    { name = "jinja2", specifier = ">=3.1.0" },
     { name = "langchain-core", specifier = ">=0.1.0" },
     { name = "langchain-openai", specifier = ">=0.1.0" },
     { name = "moviepy", specifier = "==1.0.3" },
+    { name = "openai", specifier = ">=1.0.0" },
     { name = "pandas", specifier = ">=2.3.1" },
     { name = "piexif", specifier = ">=1.1.3" },
     { name = "pillow", specifier = ">=11.3.0" },

@@ -1,4 +1,5 @@
 import os
+import shutil
 import time
 from datetime import datetime
 from pathlib import Path
@@ -7,24 +8,31 @@ from typing import Optional, List, Dict, Any
 from .logger import DetailedLogger
 from .task import TaskLoader, Task
 from .environment import EnvironmentManager
-from .llm_manager import LLMManager
-from .code_extraction import CodeExtractor
 from .evaluator import Evaluator
+from scriptbench.inference import Submission, create_inference_manager
 
 
 class ScriptBenchmark:
-    def __init__(self, tasks_dir: Path, files_dir: Path, logs_dir: Optional[Path] = None):
+    def __init__(
+        self,
+        tasks_dir: Path,
+        files_dir: Path,
+        logs_dir: Optional[Path] = None,
+        *,
+        inference_backend: Optional[str] = None,
+    ):
         self.tasks_dir = tasks_dir
         self.files_dir = files_dir
         self.logs_dir = logs_dir or Path(os.getenv("DETAILED_LOGS_DIR", "logs"))
-        
+
         self.detailed_logger = DetailedLogger(self.logs_dir)
         self.logger = self.detailed_logger.logger
-        
+
         self.task_loader = TaskLoader()
         self.env_manager = EnvironmentManager(files_dir, self.logger)
-        self.llm_manager = LLMManager(self.logger)
-        self.code_extractor = CodeExtractor()
+        backend = inference_backend or os.getenv("SCRIPTBENCH_INFERENCE_BACKEND", "openai")
+        self.inference_backend = backend
+        self.inference_manager = create_inference_manager(backend, logger=self.logger)
     
     def run_benchmark(self, task_name: Optional[str] = None) -> List[Dict[str, Any]]:
         tasks = self.task_loader.load_tasks(self.tasks_dir)
@@ -75,21 +83,31 @@ class ScriptBenchmark:
         temp_dir = None
         detailed_log = self._initialize_task_log(task, task_start_time)
         
+        task_log_dir = self.detailed_logger.get_task_directory(task.task_path.stem)
+
         try:
             temp_dir, venv_path = self._setup_environment(task, detailed_log)
-            
-            llm_response, llm_metadata = self.llm_manager.prompt_for_solution(task)
-            detailed_log["llm_interaction"] = llm_metadata
-            
+
+            submission = self._produce_submission(task, detailed_log, task_log_dir)
+            self._handle_submission_artifacts(submission, detailed_log, task_log_dir)
+            pip_packages = submission.pip_packages
+            apt_packages = submission.apt_packages
+            script_content = submission.script_content
+
+            detailed_log["code_extraction"] = {
+                "pip_packages_found": pip_packages,
+                "apt_packages_found": apt_packages,
+                "script_extracted": bool(script_content),
+                "script_length": len(script_content),
+            }
+
             # Add checkpoint after LLM interaction
             llm_end_time = datetime.now()
             detailed_log["benchmark_metadata"]["llm_end_time"] = llm_end_time.isoformat()
-            
-            pip_packages, apt_packages, script_content = self._extract_code(llm_response, detailed_log)
-            
+
             if not script_content:
                 return self._handle_no_script_error(task, detailed_log)
-            
+
             # Install packages but continue execution even if some fail
             self._install_apt_packages(apt_packages, detailed_log)
             self._install_packages(venv_path, pip_packages, detailed_log)
@@ -137,26 +155,52 @@ class ScriptBenchmark:
         self.logger.info(f"Setting up environment for task: {task.task_path.stem}")
         temp_dir = self.env_manager.setup_task_environment(task)
         venv_path = self.env_manager.create_venv(temp_dir)
-        
+
         detailed_log["benchmark_metadata"]["temp_directory"] = str(temp_dir)
         detailed_log["benchmark_metadata"]["venv_path"] = str(venv_path)
-        
+
         return temp_dir, venv_path
-    
-    def _extract_code(self, llm_response: str, detailed_log: Dict[str, Any]):
-        pip_packages = self.code_extractor.extract_pip_packages(llm_response)
-        apt_packages = self.code_extractor.extract_apt_packages(llm_response)
-        script_content = self.code_extractor.extract_python_script(llm_response)
-        
-        detailed_log["code_extraction"] = {
-            "pip_packages_found": pip_packages,
-            "apt_packages_found": apt_packages,
-            "script_extracted": script_content is not None,
-            "script_length": len(script_content) if script_content else 0
-        }
-        
-        return pip_packages, apt_packages, script_content
-    
+
+    def _produce_submission(
+        self,
+        task: Task,
+        detailed_log: Dict[str, Any],
+        task_log_dir: Path,
+    ) -> Submission:
+        submission = self.inference_manager.produce_submission(task, task_log_dir)
+
+        inference_metadata = submission.metadata.copy()
+        if submission.raw_response is not None:
+            inference_metadata.setdefault("raw_response", submission.raw_response)
+
+        detailed_log["inference"] = inference_metadata
+        return submission
+
+    def _handle_submission_artifacts(
+        self,
+        submission: Submission,
+        detailed_log: Dict[str, Any],
+        task_log_dir: Path,
+    ) -> None:
+        workspace = submission.workspace_path
+        if not workspace:
+            return
+
+        destination = task_log_dir / "mini_swe_workspace"
+        if destination.exists():
+            shutil.rmtree(destination)
+        shutil.copytree(workspace, destination)
+        detailed_log.setdefault("inference", {})["workspace_copy"] = str(destination)
+        mini_meta = detailed_log.get("inference", {}).get("mini_swe")
+        if isinstance(mini_meta, dict):
+            mini_meta["workspace"] = str(destination)
+
+        # Clean up the temporary workspace once copied
+        try:
+            shutil.rmtree(workspace)
+        except Exception as exc:  # pragma: no cover - best effort cleanup
+            self.logger.warning("Failed to remove Mini SWE workspace %s: %s", workspace, exc)
+
     def _install_apt_packages(self, packages: List[str], detailed_log: Dict[str, Any]) -> bool:
         self.logger.info(f"Installing apt packages: {packages}")
         success = self.env_manager.install_apt_packages(packages)
@@ -252,6 +296,7 @@ class ScriptBenchmark:
             "output": output,
             "evaluation": evaluation,
             "script_execution": detailed_log.get("script_execution", {}),
+            "inference": detailed_log.get("inference"),
             "timestamp": end_time.isoformat()
         }
         self.detailed_logger.save_execution_log(task.task_path.stem, execution_details)

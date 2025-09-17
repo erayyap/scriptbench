@@ -19,6 +19,9 @@ class DetailedLogger:
         # Create subdirectories for organization
         self.scripts_dir = self.run_dir / "scripts"
         self.scripts_dir.mkdir(exist_ok=True)
+
+        self.task_artifacts_dir = self.run_dir / "tasks"
+        self.task_artifacts_dir.mkdir(exist_ok=True)
         
         self.logger = logging.getLogger("scriptbench")
         self.logger.setLevel(getattr(logging, os.getenv("LOG_LEVEL", "INFO")))
@@ -38,6 +41,7 @@ class DetailedLogger:
         self.logger.info(f"Logging initialized. Run directory: {self.run_dir}")
         self.logger.info(f"Log file: {log_file}")
         self.logger.info(f"Scripts directory: {self.scripts_dir}")
+        self.logger.info(f"Task artifacts directory: {self.task_artifacts_dir}")
     
     def save_task_details(self, task_name: str, details: Dict[str, Any]):
         yaml_file = self.run_dir / f"{task_name}.yaml"
@@ -64,9 +68,15 @@ class DetailedLogger:
     def save_execution_log(self, task_name: str, execution_details: Dict[str, Any]):
         """Save execution details for a specific task"""
         exec_file = self.run_dir / f"{task_name}_execution.yaml"
-        
+
         with open(exec_file, 'w') as f:
             yaml.dump(execution_details, f, default_flow_style=False, allow_unicode=True)
-        
+
         self.logger.info(f"Execution details saved to: {exec_file}")
         return exec_file
+
+    def get_task_directory(self, task_name: str) -> Path:
+        """Return (and create) the directory for task-specific artifacts."""
+        task_dir = self.task_artifacts_dir / task_name
+        task_dir.mkdir(parents=True, exist_ok=True)
+        return task_dir

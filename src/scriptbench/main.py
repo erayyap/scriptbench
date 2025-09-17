@@ -19,6 +19,11 @@ def main():
     parser.add_argument("--logs-dir", help="Directory for detailed logs (default: from .env or 'logs')")
     parser.add_argument("--task", help="Run specific task by name")
     parser.add_argument("--output", help="Output file for results (JSON)")
+    parser.add_argument(
+        "--inference-backend",
+        choices=["openai", "mini-swe"],
+        help="Inference backend to use (default: env SCRIPTBENCH_INFERENCE_BACKEND or 'openai')",
+    )
     
     args = parser.parse_args()
     
@@ -34,7 +39,12 @@ def main():
         print(f"Files directory not found: {files_dir}")
         return
     
-    benchmark = ScriptBenchmark(tasks_dir, files_dir, logs_dir)
+    benchmark = ScriptBenchmark(
+        tasks_dir,
+        files_dir,
+        logs_dir,
+        inference_backend=args.inference_backend,
+    )
     
     try:
         results = benchmark.run_benchmark(args.task)

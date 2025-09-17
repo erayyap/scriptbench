@@ -17,7 +17,6 @@ from scriptbench.mini_swe_agent.environments.local import LocalEnvironment
 from scriptbench.mini_swe_agent.models.openai_model import OpenAIChatModel
 from scriptbench.mini_swe_agent.utils.save import save_traj
 
-from scriptbench.code_extraction import CodeExtractor
 from scriptbench.inference.base import Submission
 from scriptbench.task import Task
 
@@ -102,8 +101,6 @@ class TrackingEnvironment(LocalEnvironment):
 class MiniSWEInferenceManager:
     """Inference backend that runs the Mini SWE agent inside a scratch workspace."""
 
-    SUBMISSION_FILENAME = "submission.md"
-
     def __init__(
         self,
         logger: Optional[logging.Logger] = None,
@@ -111,7 +108,6 @@ class MiniSWEInferenceManager:
         config_path: Optional[Path] = None,
     ) -> None:
         self.logger = logger or logging.getLogger(__name__)
-        self.code_extractor = CodeExtractor()
         default_config = Path(__file__).resolve().parent.parent / "config" / "mini_swe.yaml"
         self.config_path = config_path or default_config
         if not self.config_path.exists():
@@ -142,37 +138,20 @@ class MiniSWEInferenceManager:
             self._persist_trajectory(agent, task_log_dir / "mini_swe_failed.traj.json")
             raise
 
-        submission_path = workspace / self.SUBMISSION_FILENAME
-        if not submission_path.exists():
-            self._persist_trajectory(agent, task_log_dir / "mini_swe_missing_submission.traj.json")
-            raise FileNotFoundError(
-                f"Mini SWE agent completed without writing {self.SUBMISSION_FILENAME} in {workspace}"
-            )
-
-        submission_content = submission_path.read_text()
-        blocks = self._extract_submission_blocks(submission_content)
-        script_block = blocks.get("script") or blocks.get("python") or ""
-
         detected_pip_packages = self._compute_new_pip_packages(venv_path, pip_baseline)
         detected_apt_packages = command_tracker.apt_packages()
 
-        pip_packages = self._merge_unique(
-            detected_pip_packages,
-            self._parse_pip_packages(blocks.get("pip", "")),
-        )
-        apt_packages = self._merge_unique(
-            detected_apt_packages,
-            self._parse_apt_packages(blocks.get("apt", "")),
-        )
-
         try:
-            script_content, script_path_rel = self._load_script_content(script_block, workspace)
+            script_content, script_path_rel = self._load_script_content(result_text, workspace)
         except Exception:
             self._persist_trajectory(agent, task_log_dir / "mini_swe_invalid_script_path.traj.json")
             raise
 
         trajectory_path = task_log_dir / "mini_swe.traj.json"
         self._persist_trajectory(agent, trajectory_path, exit_status=exit_status, result=result_text)
+
+        pip_packages = detected_pip_packages
+        apt_packages = detected_apt_packages
 
         metadata: Dict[str, Any] = {
             "mini_swe": {
@@ -187,7 +166,7 @@ class MiniSWEInferenceManager:
                 "apt_packages_detected": detected_apt_packages,
                 "venv_path": str(venv_path),
             },
-            "submission_md": submission_content,
+            "submission_message": result_text,
         }
 
         return Submission(
@@ -250,18 +229,6 @@ class MiniSWEInferenceManager:
             "mini_swe_workspace_pip": str(self._venv_pip_path(venv_path)),
         }
         return data
-
-    def _extract_submission_blocks(self, submission_content: str) -> Dict[str, str]:
-        pattern = re.compile(r"```(\w+)\s*\n(.*?)```", re.DOTALL)
-        blocks: Dict[str, str] = {}
-        for language, body in pattern.findall(submission_content):
-            language_normalised = language.strip().lower()
-            blocks[language_normalised] = body.strip()
-
-        if not (blocks.get("script") or blocks.get("python")):
-            raise ValueError("Mini SWE submission is missing a 'script' code block")
-
-        return blocks
 
     def _create_workspace_venv(self, workspace: Path) -> Path:
         venv_path = workspace / "venv"
@@ -341,17 +308,6 @@ class MiniSWEInferenceManager:
         return detected
 
     @staticmethod
-    def _merge_unique(primary: list[str], secondary: list[str]) -> list[str]:
-        merged: list[str] = []
-        seen: set[str] = set()
-        for item in list(primary) + list(secondary):
-            if not item or item in seen:
-                continue
-            merged.append(item)
-            seen.add(item)
-        return merged
-
-    @staticmethod
     def _normalise_pip_name(entry: str) -> str:
         if "==" in entry:
             return entry.split("==", 1)[0].strip().lower()
@@ -360,7 +316,7 @@ class MiniSWEInferenceManager:
         return entry.strip().lower()
 
     def _load_script_content(self, script_block: str, workspace: Path) -> tuple[str, str]:
-        """Load script content from the path declared in the script block."""
+        """Load script content from the path declared in the final message."""
 
         lines = [line.strip() for line in script_block.splitlines() if line.strip()]
         if not lines:
@@ -383,18 +339,6 @@ class MiniSWEInferenceManager:
             raise ValueError(f"Mini SWE script path must point to a file: {script_path_value}")
 
         return resolved_path.read_text(), script_path_value
-
-    def _parse_pip_packages(self, pip_block: str) -> list[str]:
-        if not pip_block.strip() or pip_block.strip().lower() in {"none", "n/a"}:
-            return []
-        synthetic = f"```bash\n{pip_block}\n```"
-        return self.code_extractor.extract_pip_packages(synthetic)
-
-    def _parse_apt_packages(self, apt_block: str) -> list[str]:
-        if not apt_block.strip() or apt_block.strip().lower() in {"none", "n/a"}:
-            return []
-        synthetic = f"```bash\n{apt_block}\n```"
-        return self.code_extractor.extract_apt_packages(synthetic)
 
     def _persist_trajectory(
         self,

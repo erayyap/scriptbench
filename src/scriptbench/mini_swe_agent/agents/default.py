@@ -138,6 +138,9 @@ class DefaultAgent:
 
     def _check_finished(self, output: dict[str, str]) -> None:
         lines = output.get("output", "").lstrip().splitlines(keepends=True)
-        if lines and lines[0].strip() in {"MINI_SWE_AGENT_FINAL_OUTPUT", "COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT"}:
+        if lines and lines[0].strip().upper() in {
+            "MINI_SWE_AGENT_FINAL_OUTPUT",
+            "COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT",
+            "END",
+        }:
             raise Submitted("".join(lines[1:]))
-

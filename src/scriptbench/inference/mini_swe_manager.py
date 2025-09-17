@@ -3,7 +3,10 @@ from __future__ import annotations
 import logging
 import os
 import re
+import shlex
+import subprocess
 import tempfile
+import venv
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -17,6 +20,83 @@ from scriptbench.mini_swe_agent.utils.save import save_traj
 from scriptbench.code_extraction import CodeExtractor
 from scriptbench.inference.base import Submission
 from scriptbench.task import Task
+
+
+BASE_PIP_PACKAGE_NAMES = {"pip", "setuptools", "wheel"}
+
+
+class CommandTracker:
+    """Lightweight tracker for commands issued by the agent."""
+
+    def __init__(self) -> None:
+        self._history: list[tuple[str, int | None]] = []
+
+    def record(self, command: str, result: dict[str, Any]) -> None:
+        self._history.append((command, result.get("returncode")))
+
+    def apt_packages(self) -> list[str]:
+        packages: set[str] = set()
+        for command, returncode in self._history:
+            if returncode not in (0, None):
+                continue
+            packages |= self._extract_apt_packages_from_command(command)
+        return sorted(packages)
+
+    def _extract_apt_packages_from_command(self, command: str) -> set[str]:
+        packages: set[str] = set()
+        for subcommand in re.split(r"\s*(?:&&|;|\|\|)\s*", command):
+            subcommand = subcommand.strip()
+            if not subcommand:
+                continue
+            try:
+                tokens = shlex.split(subcommand)
+            except ValueError:
+                continue
+            parsed = self._parse_apt_tokens(tokens)
+            if parsed:
+                packages |= parsed
+        return packages
+
+    def _parse_apt_tokens(self, tokens: list[str]) -> set[str]:
+        if not tokens:
+            return set()
+
+        idx = 0
+        while idx < len(tokens) and tokens[idx] not in {"apt", "apt-get"}:
+            idx += 1
+
+        if idx >= len(tokens):
+            return set()
+
+        idx += 1
+        if idx >= len(tokens) or tokens[idx] != "install":
+            return set()
+
+        idx += 1
+        packages: set[str] = set()
+        while idx < len(tokens):
+            token = tokens[idx]
+            if token.startswith("-"):
+                idx += 1
+                continue
+            packages.add(token)
+            idx += 1
+        return packages
+
+
+class TrackingEnvironment(LocalEnvironment):
+    """Local environment wrapper that records executed commands."""
+
+    def __init__(self, *, tracker: CommandTracker, **kwargs):
+        super().__init__(**kwargs)
+        self._tracker = tracker
+
+    def execute(self, command: str, cwd: str = "", *, timeout: int | None = None) -> dict[str, Any]:
+        result = super().execute(command, cwd, timeout=timeout)
+        try:
+            self._tracker.record(command, result)
+        finally:
+            return result
 
 
 class MiniSWEInferenceManager:
@@ -41,12 +121,16 @@ class MiniSWEInferenceManager:
         workspace = Path(tempfile.mkdtemp(prefix="scriptbench_miniswe_"))
         self.logger.info("Starting Mini SWE agent for task %s (workspace=%s)", task.task_path.stem, workspace)
 
+        venv_path = self._create_workspace_venv(workspace)
+        pip_baseline = self._pip_freeze(venv_path)
+        command_tracker = CommandTracker()
+
         config = yaml.safe_load(self.config_path.read_text())
         model = self._initialise_model(config)
-        environment = self._initialise_environment(config, workspace)
+        environment = self._initialise_environment(config, workspace, venv_path, command_tracker)
         agent = DefaultAgent(model, environment, **config.get("agent", {}))
 
-        extra_template_vars = self._build_template_vars(task)
+        extra_template_vars = self._build_template_vars(task, workspace, venv_path)
 
         exit_status: str
         result_text: str
@@ -66,10 +150,21 @@ class MiniSWEInferenceManager:
             )
 
         submission_content = submission_path.read_text()
-        apt_block, pip_block, script_block = self._extract_blocks(submission_content)
+        blocks = self._extract_submission_blocks(submission_content)
+        script_block = blocks.get("script") or blocks.get("python") or ""
 
-        pip_packages = self._parse_pip_packages(pip_block)
-        apt_packages = self._parse_apt_packages(apt_block)
+        detected_pip_packages = self._compute_new_pip_packages(venv_path, pip_baseline)
+        detected_apt_packages = command_tracker.apt_packages()
+
+        pip_packages = self._merge_unique(
+            detected_pip_packages,
+            self._parse_pip_packages(blocks.get("pip", "")),
+        )
+        apt_packages = self._merge_unique(
+            detected_apt_packages,
+            self._parse_apt_packages(blocks.get("apt", "")),
+        )
+
         try:
             script_content, script_path_rel = self._load_script_content(script_block, workspace)
         except Exception:
@@ -88,6 +183,9 @@ class MiniSWEInferenceManager:
                 "model_calls": agent.model.n_calls,
                 "model_cost": agent.model.cost,
                 "script_path": script_path_rel,
+                "pip_packages_detected": detected_pip_packages,
+                "apt_packages_detected": detected_apt_packages,
+                "venv_path": str(venv_path),
             },
             "submission_md": submission_content,
         }
@@ -122,14 +220,21 @@ class MiniSWEInferenceManager:
         self.logger.info("Initializing OpenAIChatModel: %s with config: %s", model_name, model_config)
         return OpenAIChatModel(model_name=model_name, **model_config)
 
-    def _initialise_environment(self, config: Dict[str, Any], workspace: Path):
+    def _initialise_environment(
+        self,
+        config: Dict[str, Any],
+        workspace: Path,
+        venv_path: Path,
+        tracker: CommandTracker,
+    ) -> TrackingEnvironment:
         env_config = dict(config.get("env", config.get("environment", {})) or {})
-        # Ensure commands execute inside the dedicated workspace
+        env_vars = dict(env_config.get("env", {}))
+        env_vars = self._apply_venv_to_env(venv_path, env_vars)
+        env_config["env"] = env_vars
         env_config["cwd"] = str(workspace)
-        return LocalEnvironment(**env_config)
+        return TrackingEnvironment(tracker=tracker, **env_config)
 
-    @staticmethod
-    def _build_template_vars(task: Task) -> Dict[str, Any]:
+    def _build_template_vars(self, task: Task, workspace: Path, venv_path: Path) -> Dict[str, Any]:
         data: Dict[str, Any] = {
             "expected_result": task.expected_result,
             "expected_string": task.expected_string,
@@ -139,28 +244,120 @@ class MiniSWEInferenceManager:
             "task_folder": task.task_folder,
             "task_file": task.task_file,
             "script_file": task.script_file,
+            "mini_swe_workspace": str(workspace),
+            "mini_swe_workspace_venv": str(venv_path),
+            "mini_swe_workspace_python": str(self._venv_python_path(venv_path)),
+            "mini_swe_workspace_pip": str(self._venv_pip_path(venv_path)),
         }
         return data
 
-    def _extract_blocks(self, submission_content: str) -> tuple[str, str, str]:
+    def _extract_submission_blocks(self, submission_content: str) -> Dict[str, str]:
         pattern = re.compile(r"```(\w+)\s*\n(.*?)```", re.DOTALL)
         blocks: Dict[str, str] = {}
         for language, body in pattern.findall(submission_content):
             language_normalised = language.strip().lower()
             blocks[language_normalised] = body.strip()
 
-        script_block = blocks.get("script") or blocks.get("python") or ""
-        apt_block = blocks.get("apt", "")
-        pip_block = blocks.get("pip", "")
+        if not (blocks.get("script") or blocks.get("python")):
+            raise ValueError("Mini SWE submission is missing a 'script' code block")
 
-        required_blocks = (("apt", apt_block), ("pip", pip_block), ("script", script_block))
-        missing = [name for name, block in required_blocks if not block]
-        if missing:
-            raise ValueError(
-                f"Mini SWE submission is missing code block(s): {', '.join(missing)}"
+        return blocks
+
+    def _create_workspace_venv(self, workspace: Path) -> Path:
+        venv_path = workspace / "venv"
+        self.logger.info("Creating virtual environment for Mini SWE workspace at %s", venv_path)
+        try:
+            # `symlinks=True` is required on POSIX when the Python distribution lives
+            # outside the workspace (as with uv toolchains); copying the launcher
+            # without its shared library causes the embedded ensurepip step to fail.
+            builder = venv.EnvBuilder(
+                with_pip=True,
+                clear=False,
+                symlinks=(os.name != "nt"),
             )
+            builder.create(venv_path)
+        except Exception:
+            # Surface the error but include context in the log first
+            self.logger.exception("Failed to create virtual environment in %s", venv_path)
+            raise
+        return venv_path
 
-        return apt_block, pip_block, script_block
+    def _apply_venv_to_env(self, venv_path: Path, base_env: dict[str, str]) -> dict[str, str]:
+        env = dict(base_env)
+        bin_path = self._venv_bin_path(venv_path)
+        existing_path = env.get("PATH") or os.getenv("PATH", "")
+        path_parts = [str(bin_path)]
+        if existing_path:
+            path_parts.append(existing_path)
+        env["PATH"] = os.pathsep.join(path_parts)
+        env["VIRTUAL_ENV"] = str(venv_path)
+        env.setdefault("PIP_DISABLE_PIP_VERSION_CHECK", "1")
+        return env
+
+    def _venv_bin_path(self, venv_path: Path) -> Path:
+        return venv_path / ("Scripts" if os.name == "nt" else "bin")
+
+    def _venv_python_path(self, venv_path: Path) -> Path:
+        return self._venv_bin_path(venv_path) / ("python.exe" if os.name == "nt" else "python")
+
+    def _venv_pip_path(self, venv_path: Path) -> Path:
+        return self._venv_bin_path(venv_path) / ("pip.exe" if os.name == "nt" else "pip")
+
+    def _pip_freeze(self, venv_path: Path) -> list[str]:
+        python_executable = self._venv_python_path(venv_path)
+        env = os.environ | self._apply_venv_to_env(venv_path, {})
+        try:
+            result = subprocess.run(
+                [str(python_executable), "-m", "pip", "freeze", "--local"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        except subprocess.CalledProcessError as exc:
+            self.logger.warning("pip freeze failed in Mini SWE workspace: %s", exc)
+            if exc.stdout:
+                self.logger.debug("pip freeze stdout: %s", exc.stdout)
+            if exc.stderr:
+                self.logger.debug("pip freeze stderr: %s", exc.stderr)
+            return []
+
+        return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+
+    def _compute_new_pip_packages(self, venv_path: Path, baseline: list[str]) -> list[str]:
+        baseline_set = set(baseline)
+        final_state = self._pip_freeze(venv_path)
+        detected: list[str] = []
+        seen: set[str] = set()
+
+        for entry in final_state:
+            if entry in baseline_set or entry in seen:
+                continue
+            normalised = self._normalise_pip_name(entry)
+            if normalised in BASE_PIP_PACKAGE_NAMES:
+                continue
+            detected.append(entry)
+            seen.add(entry)
+
+        return detected
+
+    @staticmethod
+    def _merge_unique(primary: list[str], secondary: list[str]) -> list[str]:
+        merged: list[str] = []
+        seen: set[str] = set()
+        for item in list(primary) + list(secondary):
+            if not item or item in seen:
+                continue
+            merged.append(item)
+            seen.add(item)
+        return merged
+
+    @staticmethod
+    def _normalise_pip_name(entry: str) -> str:
+        if "==" in entry:
+            return entry.split("==", 1)[0].strip().lower()
+        if " @ " in entry:
+            return entry.split(" @ ", 1)[0].strip().lower()
+        return entry.strip().lower()
 
     def _load_script_content(self, script_block: str, workspace: Path) -> tuple[str, str]:
         """Load script content from the path declared in the script block."""

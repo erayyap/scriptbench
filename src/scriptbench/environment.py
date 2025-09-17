@@ -27,14 +27,15 @@ class EnvironmentManager:
         self.logger = logger or logging.getLogger(__name__)
         self.running_processes: List[subprocess.Popen] = []
         
-    def setup_task_environment(self, task: Task) -> Path:
+    def setup_task_environment(self, task: Task, *, start_task_script: bool = True) -> Path:
         prefix = self._get_temp_dir_prefix(task)
         temp_dir = Path(tempfile.mkdtemp(prefix=prefix))
         
         self._setup_task_files(task, temp_dir)
         self._setup_script_file(task, temp_dir)
-        self._start_task_script_if_needed(task)
-        
+        if start_task_script:
+            self._start_task_script_if_needed(task)
+
         return temp_dir
     
     def _get_temp_dir_prefix(self, task: Task) -> str:
@@ -67,6 +68,10 @@ class EnvironmentManager:
             process = self._start_task_script(task)
             if process:
                 self.running_processes.append(process)
+
+    def start_task_script(self, task: Task) -> None:
+        """Public helper to start a task script on demand."""
+        self._start_task_script_if_needed(task)
     
     def _setup_folder_environment(self, task: Task, temp_dir: Path) -> None:
         """Copy entire folder structure to temp directory"""

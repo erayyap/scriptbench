@@ -82,11 +82,22 @@ class ScriptBenchmark:
         task_start_time = datetime.now()
         temp_dir = None
         detailed_log = self._initialize_task_log(task, task_start_time)
-        
+
+        defer_task_script = self._should_defer_task_script(task)
+        detailed_log["benchmark_metadata"]["task_script_start_deferred"] = defer_task_script
+        script_wait_reference = task_start_time
+
         task_log_dir = self.detailed_logger.get_task_directory(task.task_path.stem)
 
         try:
-            temp_dir, venv_path = self._setup_environment(task, detailed_log)
+            temp_dir, venv_path = self._setup_environment(
+                task,
+                detailed_log,
+                start_task_script=not defer_task_script,
+            )
+
+            if task.task_script and not defer_task_script:
+                detailed_log["benchmark_metadata"]["task_script_start_time"] = task_start_time.isoformat()
 
             submission = self._produce_submission(task, detailed_log, task_log_dir)
             self._handle_submission_artifacts(submission, detailed_log, task_log_dir)
@@ -108,12 +119,27 @@ class ScriptBenchmark:
             if not script_content:
                 return self._handle_no_script_error(task, detailed_log)
 
+            if defer_task_script and task.task_script:
+                self.logger.info(
+                    "Starting task script '%s' after Mini SWE submission for task %s",
+                    task.task_script,
+                    task.task_path.stem,
+                )
+                self.env_manager.start_task_script(task)
+                script_wait_reference = datetime.now()
+                detailed_log["benchmark_metadata"]["task_script_start_time"] = script_wait_reference.isoformat()
+
             # Install packages but continue execution even if some fail
             self._install_apt_packages(apt_packages, detailed_log)
             self._install_packages(venv_path, pip_packages, detailed_log)
             
             # Handle script wait time before execution
-            self._handle_script_wait_time(task, task_start_time, detailed_log)
+            self._handle_script_wait_time(
+                task,
+                task_start_time,
+                detailed_log,
+                reference_time=script_wait_reference,
+            )
             
             success, output, stderr = self._execute_script(script_content, temp_dir, venv_path, detailed_log, task)
             
@@ -151,15 +177,28 @@ class ScriptBenchmark:
             }
         }
     
-    def _setup_environment(self, task: Task, detailed_log: Dict[str, Any]):
+    def _setup_environment(
+        self,
+        task: Task,
+        detailed_log: Dict[str, Any],
+        *,
+        start_task_script: bool,
+    ):
         self.logger.info(f"Setting up environment for task: {task.task_path.stem}")
-        temp_dir = self.env_manager.setup_task_environment(task)
+        temp_dir = self.env_manager.setup_task_environment(
+            task,
+            start_task_script=start_task_script,
+        )
         venv_path = self.env_manager.create_venv(temp_dir)
 
         detailed_log["benchmark_metadata"]["temp_directory"] = str(temp_dir)
         detailed_log["benchmark_metadata"]["venv_path"] = str(venv_path)
 
         return temp_dir, venv_path
+
+    def _should_defer_task_script(self, task: Task) -> bool:
+        backend = (self.inference_backend or "").strip().lower()
+        return bool(task.task_script) and backend == "mini-swe"
 
     def _produce_submission(
         self,
@@ -243,30 +282,50 @@ class ScriptBenchmark:
         
         return success, output, stderr
     
-    def _handle_script_wait_time(self, task: Task, task_start_time: datetime, detailed_log: Dict[str, Any]):
+    def _handle_script_wait_time(
+        self,
+        task: Task,
+        task_start_time: datetime,
+        detailed_log: Dict[str, Any],
+        *,
+        reference_time: datetime,
+    ):
         """Handle script wait time using time checkpoints."""
         if task.script_wait_time <= 0:
             return
         
         current_time = datetime.now()
-        elapsed_seconds = (current_time - task_start_time).total_seconds()
-        
-        if elapsed_seconds < task.script_wait_time:
-            remaining_wait = task.script_wait_time - elapsed_seconds
-            self.logger.info(f"Script wait time: {task.script_wait_time}s configured, {elapsed_seconds:.2f}s elapsed, waiting additional {remaining_wait:.2f}s")
+        elapsed_since_reference = (current_time - reference_time).total_seconds()
+        elapsed_total = (current_time - task_start_time).total_seconds()
+
+        if elapsed_since_reference < task.script_wait_time:
+            remaining_wait = task.script_wait_time - elapsed_since_reference
+            self.logger.info(
+                "Script wait time: %ss configured, %.2fs elapsed since reference, waiting additional %.2fs",
+                task.script_wait_time,
+                elapsed_since_reference,
+                remaining_wait,
+            )
             time.sleep(remaining_wait)
             
             # Log final checkpoint after wait
             final_time = datetime.now()
+            elapsed_since_reference = (final_time - reference_time).total_seconds()
+            elapsed_total = (final_time - task_start_time).total_seconds()
             detailed_log["benchmark_metadata"]["script_execution_start_time"] = final_time.isoformat()
             detailed_log["benchmark_metadata"]["total_wait_applied"] = remaining_wait
         else:
-            self.logger.info(f"Script wait time: {task.script_wait_time}s configured, {elapsed_seconds:.2f}s already elapsed, no additional wait needed")
+            self.logger.info(
+                "Script wait time: %ss configured, %.2fs already elapsed since reference, no additional wait needed",
+                task.script_wait_time,
+                elapsed_since_reference,
+            )
             detailed_log["benchmark_metadata"]["script_execution_start_time"] = current_time.isoformat()
             detailed_log["benchmark_metadata"]["total_wait_applied"] = 0
         
         detailed_log["benchmark_metadata"]["script_wait_time_configured"] = task.script_wait_time
-        detailed_log["benchmark_metadata"]["elapsed_time_before_script"] = elapsed_seconds
+        detailed_log["benchmark_metadata"]["elapsed_time_before_script"] = elapsed_total
+        detailed_log["benchmark_metadata"]["elapsed_time_since_task_script_start"] = elapsed_since_reference
     
     def _evaluate_and_finalize(self, task: Task, output: str, detailed_log: Dict[str, Any],
                               start_time: datetime, pip_packages: List[str], apt_packages: List[str], script_content: str, work_dir: Path) -> Dict[str, Any]:

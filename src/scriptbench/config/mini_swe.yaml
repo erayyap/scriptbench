@@ -21,27 +21,23 @@ agent:
     ## Task
     {{task}}
 
-    You start in an empty directory. Create any files you need. Feel free to explore, experiment, run tests, and iterate as required.
-    The task given folders/files/url's will not be present here. Instead, you should experiment on what kind of data to expect and refine your script. Think of here as a "sandbox". 
+    You start in an empty directory located at {{mini_swe_workspace}}. Create any files you need. Feel free to explore, experiment, run tests, and iterate as required.
+    The task given folders/files/url's will not be present here. Instead, you should experiment on what kind of data to expect and refine your script. Think of here as a "sandbox".
+
+    A Python virtual environment is already created for you at {{mini_swe_workspace_venv}} and activated for every command you run.
+    - Python interpreter: {{mini_swe_workspace_python}}
+    - pip executable: {{mini_swe_workspace_pip}}
+
+    Use pip inside this environment to manage Python dependencies. You do not need to list them manually—any installed packages will be recorded automatically. If system packages are required, install them with `apt-get`; successful installations will also be tracked for you.
 
     ## Required final deliverable
-    Before finishing, you MUST create a file named `submission.md` in the workspace root.
-    The file must contain **exactly three** fenced code blocks in this order:
-
-    ```apt
-    ...apt-get commands here (or a comment such as # none needed)
-    ```
-
-    ```pip
-    ...pip install commands here (or a comment such as # none needed)
-    ```
+    Before finishing, you MUST create a file named `submission.md` in the workspace root with exactly one fenced code block:
 
     ```script
     relative/path/to/your_script.py
     ```
 
     Notes:
-    - Use plain commands inside the apt/pip blocks (no markdown prose).
     - The script block must contain **only** the relative path (from the workspace root) to a Python script that solves the task. Do not inline the script contents.
     - Ensure the referenced script exists and succeeds when executed with `python <path-from-script-block>` from a fresh environment.
     - Do not add additional sections or code fences to `submission.md`.

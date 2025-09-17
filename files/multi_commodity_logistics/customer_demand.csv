@@ -1,0 +1,5 @@
+customer_id,product_type,demand_units
+C1,Standard,5000
+C1,Perishable,3000
+C2,Standard,4000
+C2,Perishable,2000

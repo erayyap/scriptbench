@@ -1,4 +1,4 @@
-difficulty: 2
+difficulty: 3
 task_file: /pythonic_smell_checker/main.py
 task_specification:
   description: |

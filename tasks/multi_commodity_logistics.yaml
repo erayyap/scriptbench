@@ -1,0 +1,32 @@
+difficulty: 4
+task_folder: /multi_commodity_logistics
+task_specification:
+  description: |
+    You are the head of supply chain for a company that distributes two types of products: 'Standard' and 'Perishable'. You need to create an optimal distribution plan from factories to customers, potentially using intermediate warehouses. Your goal is to minimize the total annual cost, which includes fixed warehouse costs, transportation, production, and handling costs, while adhering to a complex set of operational and business constraints.
+
+    You must process and integrate data from several CSV files located in the './multi_commodity_logistics' directory:
+    - `warehouses.csv`: Contains `warehouse_id`, fixed `annual_cost`, and separate `capacity_standard` and `capacity_refrigerated` (in units). Refrigerated capacity can hold either product type; standard capacity can only hold 'Standard' products.
+    - `factories.csv`: Contains `factory_id`, `production_cost_standard`, `production_cost_perishable`, and total `production_capacity`.
+    - `customer_demand.csv`: Contains `customer_id`, `product_type`, and `demand_units`.
+    - `transport_costs.csv`: Contains `origin`, `destination`, and `cost_per_unit` for shipping. Note that shipping a 'Perishable' unit incurs a 20% surcharge over the listed cost due to refrigeration requirements.
+    - `handling_costs.csv`: Contains `location_id` (for factories and warehouses) and a `cost_per_unit` for handling goods at that location. This cost applies to every unit that leaves a factory or a warehouse.
+
+    **OBJECTIVE:**
+    Minimize the total annual cost: (Sum of fixed costs for opened warehouses) + (Total production costs) + (Total transportation costs including surcharges) + (Total handling costs).
+
+    **CONSTRAINTS:**
+    1.  **Demand Fulfillment:** All customer demand for both product types must be met exactly.
+    2.  **Capacity Limits:**
+        - The total units (Standard + Perishable) produced at a factory cannot exceed its production capacity.
+        - The total units of 'Standard' products stored in a warehouse cannot exceed its standard + refrigerated capacity.
+        - The total units of 'Perishable' products stored in a warehouse can only be stored in its refrigerated capacity.
+    3.  **Flow Conservation:** For any warehouse, the total units of a specific product type shipped out cannot exceed the total units shipped in. A warehouse can only be used if its fixed annual cost is paid.
+    4.  **Strategic Sourcing Mandate:** To reduce risk, no single factory can supply more than 60% of the total network-wide demand for 'Perishable' goods.
+    5.  **Direct-to-Customer SLA:** Customer C1 is a premium client. At least 25% of C1's total demand (sum of its Standard and Perishable demand) must be fulfilled via direct shipments from factories, bypassing warehouses, to ensure rapid delivery.
+    6.  **Capital Expenditure Budget:** The total fixed annual cost of all opened warehouses cannot exceed a capital budget of $75,000.
+    7.  **Supplier Synergy Discount:** If, and only if, warehouse W1 is opened and it is exclusively supplied by factory F1 (i.e., no goods from F2 enter W1), then the transportation costs for all routes *originating* from W1 are reduced by 10%.
+
+    Your script must calculate the absolute minimum total cost that satisfies all of these complex, interdependent conditions. The final answer must be an integer, rounded to the nearest whole number, and printed to standard output in the exact format 'ANSWER=x'.
+result:
+  type: numerical
+  amount: 831883

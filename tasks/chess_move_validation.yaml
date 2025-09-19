@@ -21,3 +21,4 @@ result:
   type: classification_match
   threshold: 0.99
   ground_truth_file: /chess_move_validation/complete_games.csv
+task_type: script

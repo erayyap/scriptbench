@@ -15,7 +15,12 @@ def main():
     
     parser = argparse.ArgumentParser(description="Run ScriptBench evaluation")
     parser.add_argument("--tasks-dir", default="tasks", help="Directory containing task JSON files")
-    parser.add_argument("--files-dir", default="files", help="Directory containing task files")
+    parser.add_argument("--files-dir", default=os.getenv("SCRIPTBENCH_FILES_DIR", "files"), help="Directory containing task files")
+    parser.add_argument(
+        "--agent-files-dir",
+        default=os.getenv("SCRIPTBENCH_AGENT_FILES_DIR", "files_agent"),
+        help="Directory containing agent environment files",
+    )
     parser.add_argument("--logs-dir", help="Directory for detailed logs (default: from .env or 'logs')")
     parser.add_argument("--task", help="Run specific task by name")
     parser.add_argument("--output", help="Output file for results (JSON)")
@@ -29,6 +34,7 @@ def main():
     
     tasks_dir = Path(args.tasks_dir).resolve()
     files_dir = Path(args.files_dir).resolve()
+    agent_files_dir = Path(args.agent_files_dir).resolve()
     logs_dir = Path(args.logs_dir) if args.logs_dir else None
     
     if not tasks_dir.exists():
@@ -39,9 +45,14 @@ def main():
         print(f"Files directory not found: {files_dir}")
         return
     
+    if not agent_files_dir.exists():
+        print(f"Agent files directory not found: {agent_files_dir}")
+        return
+    
     benchmark = ScriptBenchmark(
         tasks_dir,
         files_dir,
+        agent_files_dir,
         logs_dir,
         inference_backend=args.inference_backend,
     )

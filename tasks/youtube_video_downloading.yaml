@@ -8,3 +8,4 @@ task_specification:
 result:
   type: script_run
   script_file: youtube_video_downloading/checker.py
+task_type: script

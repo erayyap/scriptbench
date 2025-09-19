@@ -1,0 +1,12 @@
+difficulty: 7
+task_file: /multiplication_homework_checker/multiplication_homework.docx
+task_specification:
+  description: >
+    Write a script to check all the solutions in a docx called "./multiplication_homework.docx" and return how many of them are true by printing the percentage as:
+    "ANSWER=0.xy" where it means that 0.xy/1 of all answer are true. I have placed a sample document with the same name into your workspace, however your script will be evaluated on a different document with the same format. 
+result:
+  type: numerical
+  amount: 0.55
+task_type: agentic_script
+agent_env:
+    agent_file: /multiplication_homework_checker/multiplication_homework.docx

@@ -17,6 +17,8 @@ def create_inference_manager(
     backend: str,
     *,
     logger=None,
+    task_files_dir: Optional[Path] = None,
+    agent_files_dir: Optional[Path] = None,
 ) -> InferenceManager:
     backend_normalized = backend.strip().lower()
     match backend_normalized:
@@ -25,7 +27,11 @@ def create_inference_manager(
         case "mini-swe":
             if MiniSWEInferenceManager is None:
                 raise RuntimeError("Mini SWE backend not available; ensure dependencies are installed.")
-            return MiniSWEInferenceManager(logger=logger)
+            return MiniSWEInferenceManager(
+                logger=logger,
+                task_files_dir=task_files_dir,
+                agent_files_dir=agent_files_dir,
+            )
         case "mini-swe-iter":
             if MiniSWEInferenceManager is None:
                 raise RuntimeError("Mini SWE backend not available; ensure dependencies are installed.")
@@ -35,6 +41,8 @@ def create_inference_manager(
                 config_path=config_path,
                 agent_class=IterativeAgent,
                 backend_metadata_key="mini_swe_iter",
+                task_files_dir=task_files_dir,
+                agent_files_dir=agent_files_dir,
             )
         case other:
             raise ValueError(

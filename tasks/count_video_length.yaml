@@ -6,3 +6,4 @@ task_specification:
 result:
   type: numerical
   amount: 24
+task_type: script

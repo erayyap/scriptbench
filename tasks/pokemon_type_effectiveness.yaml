@@ -48,3 +48,5 @@ result:
   type: classification_match
   threshold: 1.0
   ground_truth_file: /pokemon_type_effectiveness/filled.csv
+
+task_type: script

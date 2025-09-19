@@ -15,3 +15,4 @@ task_specification:
 result:
   type: numerical
   amount: 16
+task_type: script

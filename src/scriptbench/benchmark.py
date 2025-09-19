@@ -17,12 +17,14 @@ class ScriptBenchmark:
         self,
         tasks_dir: Path,
         files_dir: Path,
+        agent_files_dir: Path,
         logs_dir: Optional[Path] = None,
         *,
         inference_backend: Optional[str] = None,
     ):
         self.tasks_dir = tasks_dir
         self.files_dir = files_dir
+        self.agent_files_dir = agent_files_dir
         self.logs_dir = logs_dir or Path(os.getenv("DETAILED_LOGS_DIR", "logs"))
 
         self.detailed_logger = DetailedLogger(self.logs_dir)
@@ -32,7 +34,12 @@ class ScriptBenchmark:
         self.env_manager = EnvironmentManager(files_dir, self.logger)
         backend = inference_backend or os.getenv("SCRIPTBENCH_INFERENCE_BACKEND", "openai")
         self.inference_backend = backend
-        self.inference_manager = create_inference_manager(backend, logger=self.logger)
+        self.inference_manager = create_inference_manager(
+            backend,
+            logger=self.logger,
+            task_files_dir=self.files_dir,
+            agent_files_dir=self.agent_files_dir,
+        )
     
     def run_benchmark(self, task_name: Optional[str] = None) -> List[Dict[str, Any]]:
         tasks = self.task_loader.load_tasks(self.tasks_dir)
@@ -165,6 +172,8 @@ class ScriptBenchmark:
                 "difficulty": task.difficulty,
                 "task_folder": task.task_folder,
                 "task_file": task.task_file,
+                "agent_env_files": task.agent_env.files,
+                "agent_env_folders": task.agent_env.folders,
                 "description": task.description,
                 "result_type": task.result_type,
                 "expected_result": task.expected_result,

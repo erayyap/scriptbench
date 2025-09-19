@@ -22,8 +22,24 @@ agent:
     ## Task
     {{task}}
 
+    {% if mini_swe_has_loaded_assets %}
+    You start in a workspace located at {{mini_swe_workspace}}. Unless resources are listed below, it begins empty. Create any files you need. Feel free to explore, experiment, run tests, and iterate as required.
+    The task's referenced folders/files/URLs are not auto-populated here; only items listed under Preloaded resources will exist. Treat this workspace as your sandbox to prototype and refine your script.
+    {% else %}
     You start in an empty directory located at {{mini_swe_workspace}}. Create any files you need. Feel free to explore, experiment, run tests, and iterate as required.
-    The task given folders/files/url's will not be present here. Instead, you should experiment on what kind of data to expect and refine your script. Think of here as a "sandbox".
+    Use this space to probe the kinds of data you'll encounter and refine your script; treat it as your sandbox.
+    {% endif %}
+
+    {% if mini_swe_has_loaded_assets %}
+    ## Preloaded resources
+    The following resources have already been staged inside your workspace (paths are relative to {{mini_swe_workspace}}):
+    {% for folder in mini_swe_loaded_folders %}
+    - Folder: {{ folder }}
+    {% endfor %}
+    {% for file in mini_swe_loaded_files %}
+    - File: {{ file }}
+    {% endfor %}
+    {% endif %}
 
     A Python virtual environment is already created for you at {{mini_swe_workspace_venv}} and activated for every command you run.
     - Python interpreter: {{mini_swe_workspace_python}}

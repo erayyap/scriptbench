@@ -8,3 +8,4 @@ task_specification:
 result:
   type: string_answer
   expected_string: "310CmUstbdDdogxSO340qU"
+task_type: script

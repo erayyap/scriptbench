@@ -9,3 +9,4 @@ task_specification:
 result:
   type: numerical
   amount: 52679
+task_type: script

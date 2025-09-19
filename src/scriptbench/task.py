@@ -2,7 +2,39 @@ import json
 import os
 import yaml
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional, Union
+
+
+class AgentEnvironmentConfig:
+    """Normalized representation of agent-specific resources."""
+
+    def __init__(self, data: Optional[Dict[str, Any]] = None):
+        data = data or {}
+        self.files = self._normalise_to_list(
+            data.get("agent_file")
+            or data.get("agent_files")
+            or data.get("task_file")
+            or data.get("task_files")
+        )
+        self.folders = self._normalise_to_list(
+            data.get("agent_folder")
+            or data.get("agent_folders")
+            or data.get("task_folder")
+            or data.get("task_folders")
+        )
+
+    @staticmethod
+    def _normalise_to_list(value: Optional[Union[str, List[str]]]) -> List[str]:
+        if value is None:
+            return []
+        if isinstance(value, str):
+            return [value]
+        if isinstance(value, list):
+            return [str(item) for item in value]
+        raise TypeError("Agent environment paths must be a string or list of strings")
+
+    def has_assets(self) -> bool:
+        return bool(self.files or self.folders)
 
 
 class Task:
@@ -27,6 +59,7 @@ class Task:
         self.script_wait_time = task_data.get("script_wait_time", 0)
         # Task-specific script timeout, falls back to environment default if not specified
         self.script_timeout = task_data.get("script_timeout", int(os.getenv("SCRIPT_TIMEOUT", "60")))
+        self.agent_env = AgentEnvironmentConfig(task_data.get("agent_env"))
         self.task_path = task_path
         
     @classmethod

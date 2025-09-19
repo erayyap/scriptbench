@@ -147,6 +147,8 @@ Tasks are defined in YAML files with this structure:
 ```yaml
 difficulty: 3                    # Difficulty rating (1-10)
 task_folder: /path/to/files     # Data files location
+agent_env:                     # Optional resources staged for the Mini SWE agent
+  agent_file: /path/to/example_input.json
 task_specification:
   description: >                 # Task description for LLM
     Write a Python script that...
@@ -154,6 +156,8 @@ result:
   type: numerical               # evaluation type
   amount: 42                    # expected result
 ```
+
+The runner copies `task_folder` / `task_file` paths from the directory configured by `SCRIPTBENCH_FILES_DIR` (defaults to `files/`) into the isolated execution environment that validates submissions. When `agent_env` is provided, any referenced files or folders are copied from `SCRIPTBENCH_AGENT_FILES_DIR` (defaults to `files_agent/`) into the Mini SWE agent workspace before it begins iterating. Both `agent_*` keys and their `task_*` aliases accept either a single string or a list of strings. If a top-level `task_file` is present, the same file is also staged for the agent to inspect.
 
 Supported result types:
 - `numerical`: Compare numeric output

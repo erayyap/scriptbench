@@ -4,6 +4,7 @@ import logging
 import os
 import re
 import shlex
+import shutil
 import subprocess
 import tempfile
 import venv
@@ -108,6 +109,8 @@ class MiniSWEInferenceManager:
         config_path: Optional[Path] = None,
         agent_class: Type[DefaultAgent] = DefaultAgent,
         backend_metadata_key: str = "mini_swe",
+        task_files_dir: Optional[Path] = None,
+        agent_files_dir: Optional[Path] = None,
     ) -> None:
         self.logger = logger or logging.getLogger(__name__)
         default_config = Path(__file__).resolve().parent.parent / "config" / "mini_swe.yaml"
@@ -117,6 +120,8 @@ class MiniSWEInferenceManager:
         self.agent_class = agent_class
         self.backend_metadata_key = backend_metadata_key
         self._minimum_iterations: Optional[int] = None
+        self.task_files_dir = self._resolve_directory(task_files_dir, "SCRIPTBENCH_FILES_DIR", "files")
+        self.agent_files_dir = self._resolve_directory(agent_files_dir, "SCRIPTBENCH_AGENT_FILES_DIR", "files_agent")
 
     def produce_submission(self, task: Task, task_log_dir: Path) -> Submission:
         workspace = Path(tempfile.mkdtemp(prefix="scriptbench_miniswe_"))
@@ -126,6 +131,8 @@ class MiniSWEInferenceManager:
             task.task_path.stem,
             workspace,
         )
+
+        preloaded_assets = self._prepare_agent_environment(task, workspace)
 
         venv_path = self._create_workspace_venv(workspace)
         pip_baseline = self._pip_freeze(venv_path)
@@ -137,7 +144,7 @@ class MiniSWEInferenceManager:
         environment = self._initialise_environment(config, workspace, venv_path, command_tracker)
         agent = self.agent_class(model, environment, **config.get("agent", {}))
 
-        extra_template_vars = self._build_template_vars(task, workspace, venv_path)
+        extra_template_vars = self._build_template_vars(task, workspace, venv_path, preloaded_assets)
 
         exit_status: str
         result_text: str
@@ -183,6 +190,13 @@ class MiniSWEInferenceManager:
             "mini_swe_variant": self.backend_metadata_key,
             "submission_message": result_text,
         }
+
+        if preloaded_assets.get("files") or preloaded_assets.get("folders"):
+            variant_metadata = metadata[self.backend_metadata_key]
+            if preloaded_assets.get("files"):
+                variant_metadata["preloaded_files"] = preloaded_assets["files"]
+            if preloaded_assets.get("folders"):
+                variant_metadata["preloaded_folders"] = preloaded_assets["folders"]
 
         return Submission(
             apt_packages=apt_packages,
@@ -231,7 +245,129 @@ class MiniSWEInferenceManager:
         env_config["cwd"] = str(workspace)
         return TrackingEnvironment(tracker=tracker, **env_config)
 
-    def _build_template_vars(self, task: Task, workspace: Path, venv_path: Path) -> Dict[str, Any]:
+    def _prepare_agent_environment(self, task: Task, workspace: Path) -> Dict[str, list[str]]:
+        assets: Dict[str, list[str]] = {"files": [], "folders": []}
+
+        if task.task_file:
+            copied = self._copy_resource_file(self.task_files_dir, task.task_file, workspace)
+            if copied and copied not in assets["files"]:
+                assets["files"].append(copied)
+
+        if task.agent_env.has_assets():
+            if not self.agent_files_dir:
+                self.logger.warning(
+                    "Agent environment assets requested, but no agent files directory configured."
+                )
+            else:
+                for relative_file in task.agent_env.files:
+                    copied = self._copy_resource_file(self.agent_files_dir, relative_file, workspace)
+                    if copied and copied not in assets["files"]:
+                        assets["files"].append(copied)
+                for relative_folder in task.agent_env.folders:
+                    copied = self._copy_resource_folder(self.agent_files_dir, relative_folder, workspace)
+                    if copied and copied not in assets["folders"]:
+                        assets["folders"].append(copied)
+
+        return assets
+
+    def _copy_resource_file(
+        self,
+        base_dir: Optional[Path],
+        relative_path: str,
+        workspace: Path,
+    ) -> Optional[str]:
+        if base_dir is None:
+            return None
+
+        source = self._safe_join(base_dir, relative_path)
+        if source is None:
+            return None
+        if not source.exists():
+            self.logger.warning("Agent resource file does not exist: %s", source)
+            return None
+        if not source.is_file():
+            self.logger.warning("Expected file but found non-file resource: %s", source)
+            return None
+
+        destination = workspace / source.name
+        if destination.exists():
+            self.logger.warning(
+                "Overwriting existing agent file in workspace: %s (source=%s)",
+                destination,
+                source,
+            )
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, destination)
+        self.logger.info("Loaded agent file into workspace: %s -> %s", source, destination)
+        return str(destination.relative_to(workspace))
+
+    def _copy_resource_folder(
+        self,
+        base_dir: Optional[Path],
+        relative_path: str,
+        workspace: Path,
+    ) -> Optional[str]:
+        if base_dir is None:
+            return None
+
+        source = self._safe_join(base_dir, relative_path)
+        if source is None:
+            return None
+        if not source.exists():
+            self.logger.warning("Agent resource folder does not exist: %s", source)
+            return None
+        if not source.is_dir():
+            self.logger.warning("Expected folder but found non-directory resource: %s", source)
+            return None
+
+        destination = workspace / source.relative_to(base_dir)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(source, destination, dirs_exist_ok=True)
+        self.logger.info("Loaded agent folder into workspace: %s -> %s", source, destination)
+        return str(destination.relative_to(workspace))
+
+    def _safe_join(self, base_dir: Optional[Path], relative_path: str) -> Optional[Path]:
+        if base_dir is None:
+            return None
+        cleaned = self._normalise_relative_path(relative_path)
+        if not cleaned:
+            return None
+
+        candidate = (base_dir / cleaned).resolve()
+        try:
+            candidate.relative_to(base_dir)
+        except ValueError:
+            self.logger.warning("Ignoring agent asset outside base directory: %s", candidate)
+            return None
+        return candidate
+
+    @staticmethod
+    def _normalise_relative_path(relative_path: str) -> Path:
+        return Path(relative_path.lstrip("/"))
+
+    def _resolve_directory(
+        self,
+        configured: Optional[Path],
+        env_var: str,
+        default_value: str,
+    ) -> Optional[Path]:
+        if configured:
+            return Path(configured).resolve()
+        env_value = os.getenv(env_var)
+        if env_value:
+            return Path(env_value).resolve()
+        return Path(default_value).resolve()
+
+    def _build_template_vars(
+        self,
+        task: Task,
+        workspace: Path,
+        venv_path: Path,
+        assets: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        assets = assets or {}
+        loaded_files = list(assets.get("files", []))
+        loaded_folders = list(assets.get("folders", []))
         data: Dict[str, Any] = {
             "expected_result": task.expected_result,
             "expected_string": task.expected_string,
@@ -246,6 +382,9 @@ class MiniSWEInferenceManager:
             "mini_swe_workspace_venv": str(venv_path),
             "mini_swe_workspace_python": str(self._venv_python_path(venv_path)),
             "mini_swe_workspace_pip": str(self._venv_pip_path(venv_path)),
+            "mini_swe_loaded_files": loaded_files,
+            "mini_swe_loaded_folders": loaded_folders,
+            "mini_swe_has_loaded_assets": bool(loaded_files or loaded_folders),
         }
         return data
 

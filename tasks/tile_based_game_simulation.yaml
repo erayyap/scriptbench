@@ -123,3 +123,4 @@ task_specification:
 result:
   type: string_answer
   expected_string: "Verdant Swarm"
+task_type: script

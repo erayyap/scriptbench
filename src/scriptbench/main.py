@@ -21,7 +21,7 @@ def main():
     parser.add_argument("--output", help="Output file for results (JSON)")
     parser.add_argument(
         "--inference-backend",
-        choices=["openai", "mini-swe"],
+        choices=["openai", "mini-swe", "mini-swe-iter"],
         help="Inference backend to use (default: env SCRIPTBENCH_INFERENCE_BACKEND or 'openai')",
     )
     

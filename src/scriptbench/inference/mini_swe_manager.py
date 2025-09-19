@@ -8,7 +8,7 @@ import subprocess
 import tempfile
 import venv
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Type
 
 import yaml
 
@@ -106,25 +106,36 @@ class MiniSWEInferenceManager:
         logger: Optional[logging.Logger] = None,
         *,
         config_path: Optional[Path] = None,
+        agent_class: Type[DefaultAgent] = DefaultAgent,
+        backend_metadata_key: str = "mini_swe",
     ) -> None:
         self.logger = logger or logging.getLogger(__name__)
         default_config = Path(__file__).resolve().parent.parent / "config" / "mini_swe.yaml"
         self.config_path = config_path or default_config
         if not self.config_path.exists():
             raise FileNotFoundError(f"Mini SWE config not found at {self.config_path}")
+        self.agent_class = agent_class
+        self.backend_metadata_key = backend_metadata_key
+        self._minimum_iterations: Optional[int] = None
 
     def produce_submission(self, task: Task, task_log_dir: Path) -> Submission:
         workspace = Path(tempfile.mkdtemp(prefix="scriptbench_miniswe_"))
-        self.logger.info("Starting Mini SWE agent for task %s (workspace=%s)", task.task_path.stem, workspace)
+        self.logger.info(
+            "Starting %s agent for task %s (workspace=%s)",
+            self.backend_metadata_key,
+            task.task_path.stem,
+            workspace,
+        )
 
         venv_path = self._create_workspace_venv(workspace)
         pip_baseline = self._pip_freeze(venv_path)
         command_tracker = CommandTracker()
 
         config = yaml.safe_load(self.config_path.read_text())
+        config = self._apply_env_overrides(config)
         model = self._initialise_model(config)
         environment = self._initialise_environment(config, workspace, venv_path, command_tracker)
-        agent = DefaultAgent(model, environment, **config.get("agent", {}))
+        agent = self.agent_class(model, environment, **config.get("agent", {}))
 
         extra_template_vars = self._build_template_vars(task, workspace, venv_path)
 
@@ -135,7 +146,7 @@ class MiniSWEInferenceManager:
             exit_status, result_text = agent.run(task.description, **extra_template_vars)
         except Exception:
             # Save trajectory even on failure for debugging
-            self._persist_trajectory(agent, task_log_dir / "mini_swe_failed.traj.json")
+            self._persist_trajectory(agent, task_log_dir / f"{self.backend_metadata_key}_failed.traj.json")
             raise
 
         detected_pip_packages = self._compute_new_pip_packages(venv_path, pip_baseline)
@@ -144,17 +155,20 @@ class MiniSWEInferenceManager:
         try:
             script_content, script_path_rel = self._load_script_content(result_text, workspace)
         except Exception:
-            self._persist_trajectory(agent, task_log_dir / "mini_swe_invalid_script_path.traj.json")
+            self._persist_trajectory(
+                agent,
+                task_log_dir / f"{self.backend_metadata_key}_invalid_script_path.traj.json",
+            )
             raise
 
-        trajectory_path = task_log_dir / "mini_swe.traj.json"
+        trajectory_path = task_log_dir / f"{self.backend_metadata_key}.traj.json"
         self._persist_trajectory(agent, trajectory_path, exit_status=exit_status, result=result_text)
 
         pip_packages = detected_pip_packages
         apt_packages = detected_apt_packages
 
         metadata: Dict[str, Any] = {
-            "mini_swe": {
+            self.backend_metadata_key: {
                 "exit_status": exit_status,
                 "submission_result": result_text,
                 "workspace": str(workspace),
@@ -166,6 +180,7 @@ class MiniSWEInferenceManager:
                 "apt_packages_detected": detected_apt_packages,
                 "venv_path": str(venv_path),
             },
+            "mini_swe_variant": self.backend_metadata_key,
             "submission_message": result_text,
         }
 
@@ -209,6 +224,9 @@ class MiniSWEInferenceManager:
         env_config = dict(config.get("env", config.get("environment", {})) or {})
         env_vars = dict(env_config.get("env", {}))
         env_vars = self._apply_venv_to_env(venv_path, env_vars)
+        if self._minimum_iterations is not None:
+            env_vars.setdefault("MINI_SWE_MINIMUM_ITERATIONS", str(self._minimum_iterations))
+            env_vars.setdefault("SCRIPTBENCH_MINI_SWE_MIN_ITERATIONS", str(self._minimum_iterations))
         env_config["env"] = env_vars
         env_config["cwd"] = str(workspace)
         return TrackingEnvironment(tracker=tracker, **env_config)
@@ -223,12 +241,49 @@ class MiniSWEInferenceManager:
             "task_folder": task.task_folder,
             "task_file": task.task_file,
             "script_file": task.script_file,
+            "mini_swe_variant": self.backend_metadata_key,
             "mini_swe_workspace": str(workspace),
             "mini_swe_workspace_venv": str(venv_path),
             "mini_swe_workspace_python": str(self._venv_python_path(venv_path)),
             "mini_swe_workspace_pip": str(self._venv_pip_path(venv_path)),
         }
         return data
+
+    def _apply_env_overrides(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        self._minimum_iterations = None
+        agent_config = dict(config.get("agent", {}))
+
+        env_value = os.getenv("SCRIPTBENCH_MINI_SWE_MIN_ITERATIONS") or os.getenv(
+            "MINI_SWE_MINIMUM_ITERATIONS"
+        )
+        if env_value is not None:
+            try:
+                minimum = max(0, int(env_value))
+            except ValueError:
+                self.logger.warning(
+                    "Ignoring invalid MINI_SWE_MINIMUM_ITERATIONS value: %s", env_value
+                )
+            else:
+                agent_config["minimum_iterations"] = minimum
+                self.logger.info(
+                    "Overriding agent minimum_iterations via environment to %s", minimum
+                )
+                self._minimum_iterations = minimum
+
+        if self._minimum_iterations is None:
+            value = agent_config.get("minimum_iterations")
+            if isinstance(value, int):
+                self._minimum_iterations = value
+            else:
+                try:
+                    self._minimum_iterations = int(value)
+                except (TypeError, ValueError):
+                    self._minimum_iterations = None
+
+        if agent_config:
+            config["agent"] = agent_config
+
+        return config
 
     def _create_workspace_venv(self, workspace: Path) -> Path:
         venv_path = workspace / "venv"

@@ -114,7 +114,8 @@ Key environment variables:
 - `OPENAI_TEMPERATURE`: Model temperature (default: 0)
 - `SCRIPT_TIMEOUT`: Script execution timeout in seconds (default: 600)
 - `LOG_LEVEL`: Logging level (default: INFO)
-- `SCRIPTBENCH_INFERENCE_BACKEND`: Selects the inference backend (`openai` or `mini-swe`). Defaults to `openai`.
+- `SCRIPTBENCH_INFERENCE_BACKEND`: Selects the inference backend (`openai`, `mini-swe`, or `mini-swe-iter`). Defaults to `openai`.
+- `MINI_SWE_MINIMUM_ITERATIONS` / `SCRIPTBENCH_MINI_SWE_MIN_ITERATIONS`: Overrides the minimum command steps required by the `mini-swe-iter` backend (default: value from `mini_swe_iter.yaml`).
 
 ### Inference Backends
 
@@ -122,6 +123,7 @@ ScriptBench supports multiple inference providers via the `--inference-backend` 
 
 - `openai` *(default)*: Uses LangChain’s `ChatOpenAI` with the prompt structure described earlier. Behaviour is unchanged from previous releases.
 - `mini-swe`: Runs the Mini SWE agent in an isolated scratch workspace. The agent iterates freely, then writes a `submission.md` file that contains three fenced code blocks (`apt`, `pip`, `script`). ScriptBench parses this file to extract dependencies and the final Python solution before executing it in the standard pipeline. The agent trajectory and full workspace are copied into the per-task log directory for inspection.
+- `mini-swe-iter`: Uses the bundled "mini SWE iterative" prompt, which instructs the agent to execute at least *N* command steps (configurable via `minimum_iterations` or the `MINI_SWE_MINIMUM_ITERATIONS` environment override) before finishing. Each observation reminds the agent of the current step number and remaining required steps, preventing early termination.
 
 Mini SWE backend configuration:
 
@@ -130,7 +132,12 @@ Mini SWE backend configuration:
 - `MINI_SWE_MODEL_API_KEY` *(optional)* – API key for the Mini SWE model. Falls back to `OPENAI_API_KEY` if unset.
 - `MINI_SWE_MODEL_BASE_URL` *(optional)* – base URL forwarded to LiteLLM. Falls back to the `OPENAI_BASE_URL_RUNNER` value.
 
-The Mini SWE agent uses the bundled `src/scriptbench/config/mini_swe.yaml` prompt, which enforces the `submission.md` contract and completion signal (`echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT`).
+The Mini SWE agents use bundled prompt configurations:
+
+- `src/scriptbench/config/mini_swe.yaml` for the default free-iteration variant.
+- `src/scriptbench/config/mini_swe_iter.yaml` for the minimum-steps variant described above.
+
+Both prompts enforce the `END` completion signal with the relative path to the submission script (`printf 'END\nrelative/path/to/your_script.py\n'`).
 Make sure the [`mini-swe-agent`](https://github.com/openai/mini-swe-agent) package is available in your environment (e.g. `pip install mini-swe-agent`) before selecting this backend.
 
 ## Task Definition Format

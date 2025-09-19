@@ -198,7 +198,7 @@ class ScriptBenchmark:
 
     def _should_defer_task_script(self, task: Task) -> bool:
         backend = (self.inference_backend or "").strip().lower()
-        return bool(task.task_script) and backend == "mini-swe"
+        return bool(task.task_script) and backend in {"mini-swe", "mini-swe-iter"}
 
     def _produce_submission(
         self,
@@ -225,14 +225,26 @@ class ScriptBenchmark:
         if not workspace:
             return
 
-        destination = task_log_dir / "mini_swe_workspace"
+        variant = (submission.metadata or {}).get("mini_swe_variant", "mini_swe")
+        destination = task_log_dir / f"{variant}_workspace"
         if destination.exists():
             shutil.rmtree(destination)
-        shutil.copytree(workspace, destination)
-        detailed_log.setdefault("inference", {})["workspace_copy"] = str(destination)
-        mini_meta = detailed_log.get("inference", {}).get("mini_swe")
+        shutil.copytree(workspace, destination, ignore=shutil.ignore_patterns("venv"))
+
+        packages_file = destination / "venv_packages.txt"
+        try:
+            packages = submission.pip_packages
+            packages_contents = "\n".join(packages) if packages else "(no additional packages detected)"
+            packages_file.write_text(packages_contents + "\n")
+        except Exception as exc:  # pragma: no cover - best effort bookkeeping
+            self.logger.warning("Failed to persist Mini SWE package list to %s: %s", packages_file, exc)
+
+        inference_section = detailed_log.setdefault("inference", {})
+        inference_section["workspace_copy"] = str(destination)
+        mini_meta = inference_section.get(variant)
         if isinstance(mini_meta, dict):
             mini_meta["workspace"] = str(destination)
+            mini_meta["workspace_packages_file"] = str(packages_file)
 
         # Clean up the temporary workspace once copied
         try:

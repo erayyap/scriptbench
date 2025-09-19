@@ -30,6 +30,7 @@ class AgentConfig:
     action_observation_template: str = "Observation: {{output}}"
     step_limit: int = 0
     cost_limit: float = 3.0
+    minimum_iterations: int = 0
 
 
 class NonTerminatingException(Exception):
